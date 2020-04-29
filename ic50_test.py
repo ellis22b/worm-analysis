@@ -16,8 +16,8 @@ def main():
     parser = generate_parser()
     args = parser.parse_args()
     analysis_instance = WormAnalysis(args.toAssess, args.logfile)
-    if args.plotIC50 or args.plotLC50:
-        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
+    #if args.plotIC50 or args.plotLC50:
+    #    analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
 
 
 def generate_parser():
@@ -43,23 +43,23 @@ class WormAnalysis():
         self.find_mortality_score()
 
     def load_data(self, toAssess):
-        num_experiments = len(toAssess)
+        self.num_experiments = len(toAssess)
         for i, file in enumerate(toAssess):
             df = pd.read_csv(file, sep='\t', header=0)
             if i == 0:
-                uniq_conc = np.unique(df.loc[:,'Concentration'])
+                self.uniq_conc = np.unique(df.loc[:,'Concentration'])
                 self.conc_index = {}
                 self.index_to_conc = {}
-                for k,c in enumerate(uniq_conc):
+                for k,c in enumerate(self.uniq_conc):
                     self.conc_index[float(c)] = k
                     self.index_to_conc[k] = float(c)
-                num_concentrations = len(uniq_conc)
-                num_days = len(np.unique(df.loc[:,'Day']))
-                self.scores3_by_well = np.zeros((num_concentrations*3, 4, num_days, num_experiments)) #num_concentrations*3 because concentrations for each experiment should be in triplicate, 4 because of 0-1-2-3 scoring, num_days, and num_experiments
-                self.scores3_by_conc = np.zeros((num_concentrations, 4, num_days, num_experiments))
+                self.num_concentrations = len(self.uniq_conc)
+                self.num_days = len(np.unique(df.loc[:,'Day']))
+                self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments)) #num_concentrations*3 because concentrations for each experiment should be in triplicate, 4 because of 0-1-2-3 scoring, num_days, and num_experiments
+                self.scores3_by_conc = np.zeros((self.num_concentrations, 4, self.num_days, self.num_experiments))
                 self.well_index_to_conc = {}
                 self.conc_to_well_index = {}
-                for well, conc in zip(np.array(df.loc[:, 'Well']).astype(np.int32)[0:num_concentrations*3], np.array(df.loc[:,'Concentration'])[0:num_concentrations*3]):
+                for well, conc in zip(np.array(df.loc[:, 'Well']).astype(np.int32)[0:self.num_concentrations*3], np.array(df.loc[:,'Concentration'])[0:self.num_concentrations*3]):
                     well_index = well-1
                     self.well_index_to_conc[well_index] = float(conc)
                     self.conc_to_well_index[float(conc)] = well_index
@@ -90,15 +90,34 @@ class WormAnalysis():
                 logging.warning('wells in {} do not have equal numbers of worms in a given well across the length of the experiment'.format(file))
 
     def find_motility_index_score(self):
-        return 0
+        '''setting motility index score
+        Day 0 is automatically a score of 3 for all wells
+        weight the number of worms in well of score 0 by 0, the number of worms in well of score 1 by 1, the number of worms in well of score 2 by 2, and the number of worms in well of score 3 by 3
+        Sum these weighted numbers and then divide by the total number of worms in well '''
+        self.motility_index_scores = np.full((self.num_concentrations, self.num_days+1, self.num_experiments), 3.0, dtype=np.float64) #day 0 will be set to 3 automatically, will set days1 onwards at the end
+        adjusted_sum = np.sum(self.scores3_by_conc * np.array([0, 1, 2, 3]).reshape((1,-1,1,1)), axis=1) #weight number of worms by the score and sum: 0*num0_in_well + 1*num1_in_well + 2*num2_in_well + 3*num3_in_well
+        divided = adjusted_sum/np.sum(self.scores3_by_conc, axis=1) #divide the sum above (adjusted_sum) by the number of worms total in the well (the denominator)
+        self.motility_index_scores[:, 1:, :] = divided #setting days1 onwards
 
     def find_mortality_score(self):
-        return 0
+        '''setting percent alive
+        Day 0 is automatically 100 percent alive for all wells
+        weight the nubmer of worms in well of score 0 by 0 and weight the number of worms in well of score 1 by 1, the number of worms in well by score 2 by 1, and the nubmer of worms in well of score 3 by 1
+        Sum these weighted number to effectively sum the number of worms in the well that are alive
+        then divide by the total number of worms in the well and multiply 100 to convert to percentage'''
+        self.mortality_scores = np.full((self.num_concentrations, self.num_days+1, self.num_experiments), 100.0, dtype=np.float64) #day 0 will be set to 100 automatically, will set days1 onwards at the end
+        adjusted_sum = np.sum(self.scores3_by_conc * np.array([0, 1, 1 ,1]).reshape((1, -1, 1, 1)), axis=1) #weight number of worms by the score and sum: 0*num0_in_well + 1*num1_in_well + 1*num2_in_well + 1*num3_in_well where the score 1 denotes alive
+        divided_to_percent = adjusted_sum/np.sum(self.scores3_by_conc, axis=1)*100 #divide the sum above (adjusted_sum) by the number of worms total in the well (the denominator), change to percentage
+        self.mortality_scores[:, 1:, :] = divided_to_percent
 
     def transform_X(self, X):
-        return 0
+        '''set [0] to x0_val'''
+        bool_0 = X == 0
+        X[bool_0] += self.x0_val
+        '''return log10 of concentrations'''
+        return np.log10(X)
 
-    def inhibitorResponse_equation(self, X, top, bottom, ic50, hillslope):
+    def inhibitorResponse_equation(self, X, top, bottom, ic50, hillslope=-1):
         exponent = (np.log10(ic50)- self.transform_X(X))*hillslope
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
@@ -106,5 +125,9 @@ class WormAnalysis():
     def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
         self.C_day = C_day
         self.x0_val = x0_val
+
+
+
+
 
 main()
