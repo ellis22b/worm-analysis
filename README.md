@@ -22,8 +22,8 @@ The following set of inputs will be used to annotate plots from the data passed 
   - 7: mg/kg
   - 8: mg/g
 
-  
-Another important note about the data input files is that **all inputs (at this time) in a single run should be experiments with the same strain, life stage, drug, number of days, and concentrations**. For example, in the `--toAssess` list above, kw9, kw11, and kw12 were N2 L4 Albendazole 7-day experiments with concentrations 0, 0.1, 1, 10, 100, 1000 ug/mL. (Later additions to the program can explore ways to plot drug screening more efficiently)<br />< br />
+
+Another important note about the data input files is that **all inputs (at this time) in a single run should be experiments with the same strain, life stage, drug, number of days, and concentrations**. For example, in the `--toAssess` list above, kw9, kw11, and kw12 were N2 L4 Albendazole 7-day experiments with concentrations 0, 0.1, 1, 10, 100, 1000 ug/mL. (Later additions to the program can explore ways to plot drug screening more efficiently)<br /><br />
 
 Concerning **format for the input files**: These input files should be **tab delimited** and formatted like this example beginning 37 lines of `kw9_export.txt` where each line specifies a well at a given concentration on a given day and the number of worms that were scored as 0, 1, 2, or 3 for that well/day/concentration as well as the total number of worms in the well, and a boolean argument for the final column in only the first day's set of lines.
 ```
