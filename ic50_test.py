@@ -13,10 +13,20 @@ import pandas as pd
 import datetime
 import matplotlib.pyplot as plt
 import sys
-from matplotlib import rc
+from matplotlib import rc, rcParams
 
-# activate latex text rendering
-rc('text', usetex=True)
+rc('axes', linewidth=2)
+params = {'font.sans-serif': 'Helvetica',
+          'font.size': 12,
+          'font.weight': 'bold',
+          'legend.frameon': False,
+          'legend.labelspacing': 1,
+          "text.usetex": True,
+          'text.latex.preamble': [r'\usepackage{siunitx}',
+                           r'\sisetup{detect-all}',
+                           r'\usepackage{sansmath}',
+                           r'\sansmath']}
+rcParams.update(params)
 
 def main():
     parser = generate_parser()
@@ -58,8 +68,8 @@ class WormAnalysis():
         self.stage = stage
         self.concUnits = concUnits
 
-        self.concUnits_dict = { 0: "\u03bcg/mL",
-                                1: "\u03bcM",
+        self.concUnits_dict = { 0: r"$\mu$"+"/mL",
+                                1: r"$\mu$"+"M",
                                 2: "M",
                                 3: "mM",
                                 4: "nM",
@@ -70,7 +80,6 @@ class WormAnalysis():
         self.conc_colors_lo_to_hi = ['black', 'darkorange', 'darkgoldenrod', 'purple', 'limegreen', 'blue']
         self.conc_markers_lo_to_hi = ['s','o', '^', 'v', 'd', 'o']
         self.conc_marker_outline_lo_to_hi = ['black', 'darkorange', 'darkgoldenrod', 'purple', 'limegreen', 'black']
-        #use the following _ u'{}'.format(self.concUnits) _ to add the concentration as a label if args.concUnits is 0 or 1
         logging.basicConfig(filename=logfile, level=logging.INFO)
         logging.info("command used to run analysis:\n {}".format(' '.join(sys.argv)))
         self.load_data(toAssess)
@@ -168,21 +177,44 @@ class WormAnalysis():
         divided_to_percent_by_well = adjusted_sum_by_well/np.sum(self.scores3_by_well, axis=1)*100
         self.mortality_scores_by_well[:, 1:, :] = divided_to_percent_by_well
 
-    def plotLineCurves(self, toPlot, figname, title, ylabel, ymin, ymax):
+    def plotLineCurves(self, toPlot, figname, title, ylabel, ymin, ymax, ysep):
         '''right now this doesn't include specifying molarity of the highest concentration'''
         fig, ax = plt.subplots()
-        fig.suptitle(title)
+        right_side = ax. spines["right"]
+        top_side = ax.spines["top"]
+        right_side.set_visible(False)
+        top_side.set_visible(False)
+        ax.set_title(title)
         days_arr = np.arange(self.num_days + 1)
         for i in range(toPlot.shape[0])[::-1]:
-            if self.concUnits == 0 or self.concUnits==1:
-                label = u"{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
-            else:
-                label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
-            ax.plot(days_arr, toPlot[i], c=self.conc_colors_lo_to_hi[i], marker=self.conc_markers_lo_to_hi[i], markeredgecolor=self.conc_marker_outline_lo_to_hi[i], label=label)
-        ax.set_xlabel('Days')
-        ax.set_ylabel(ylabel)
+            label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
+            ax.plot(days_arr, toPlot[i], c=self.conc_colors_lo_to_hi[i], marker=self.conc_markers_lo_to_hi[i], markeredgecolor=self.conc_marker_outline_lo_to_hi[i], label=label, clip_on = False)
+        ax.set_xlabel(r'\textbf{Days}')
+        ax.set_ylabel(r'\textbf{%s}' %ylabel)
         ax.set_ylim(ymin, ymax)
-        #ax.legend()
+        y_ticklabels = np.arange(ymin, ymax+ysep, ysep)
+        ax.set_yticks(y_ticklabels)
+        y_ticklabels = y_ticklabels.astype(str)
+        for i in range(y_ticklabels.shape[0]):
+            y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
+        ax.set_yticklabels(y_ticklabels)
+        box = ax.get_position()
+        #not shrunk version
+        #ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        #shrunk version
+        #ax.set_position([box.x0, box.y0, box.width * 0.8, box.height*0.6])
+        #shrunk less version
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height*0.75])
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.5))
+        x_ticklabels = np.arange(self.num_days+1)
+        ax.set_xticks(x_ticklabels)
+        x_ticklabels = x_ticklabels.astype(str)
+        for i in range(x_ticklabels.shape[0]):
+            x_ticklabels[i] = r'\textbf{%s}'%x_ticklabels[i]
+        ax.set_xticklabels(x_ticklabels)
+        ax.xaxis.set_tick_params(width=2)
+        ax.yaxis.set_tick_params(width=2)
         fig.savefig(figname)
         plt.close(fig)
         logging.info('Plotted the figure {}'.format(figname))
@@ -192,24 +224,24 @@ class WormAnalysis():
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], '{}_isep_motility.png'.format(exp), r"%s %s on %s %s \textit{C. elegans}" %(exp, self.drug, self.stage, self.strain), "Motility Index Score", 0, 3)
+                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], '{}_isep_motility.png'.format(exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
             reshaped_mid_by_well = self.motility_index_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 motility_index_across_exp[:,j*3:(j*3)+3 ,:] = reshaped_mid_by_well[:,:,:,j]
             motility_avg_across_exp = np.mean(motility_index_across_exp, axis=1)
-            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"%s on %s %s \textit{C. elegans}" %(self.drug, self.stage, self.strain), "Motility Index Score", 0, 3)
+            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
 
         if plotLine1:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], '{}_isep_mortality.png'.format(exp), r"%s %s on %s %s \textit{C. elegans}" %(exp, self.drug, self.stage, self.strain), "Percent Alive", 0, 100)
+                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], '{}_isep_mortality.png'.format(exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
             reshaped_mort_by_well = self.mortality_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             mortality_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 mortality_across_exp[:,j*3:(j*3)+3, :] = reshaped_mort_by_well[:,:,:,j]
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
-            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"%s on %s %s \textit{C. elegans}" %(self.drug, self.stage, self.strain), "Percent Alive", 0, 100)
+            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
 
 
     def transform_X(self, X):
