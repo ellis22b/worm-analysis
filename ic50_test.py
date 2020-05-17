@@ -31,9 +31,11 @@ rcParams.update(params)
 def main():
     parser = generate_parser()
     args = parser.parse_args()
-    analysis_instance = WormAnalysis(args.toAssess, args.logfile, args.drug, args.strain, args.stage, args.concUnits, args.reportNum)
-    if args.plotLine3 or args.plotLine1:
-        analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+    analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.reportNum)
+    #if args.plotLine3 or args.plotLine1:
+    #    analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+    if args.plotIT50 or args.plotLT50:
+        analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
     #if args.plotIC50 or args.plotLC50:
     #    analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
 
@@ -55,14 +57,13 @@ def generate_parser():
     parser.add_argument('--x0_value', action='store', dest='x0_val', type=float, default=1e-6, help='value to replace the x=0 [] with when transforming x')
     parser.add_argument('--plotIT50', action='store', dest='plotIT50', type=bool, default=True, help='whether to plot the IT50 (3-2-1-0 scoring)')
     parser.add_argument('--plotLT50', action='store', dest='plotLT50', type=bool, default=True, help='whether to plot the LT50 (3-2-1-0 scoring)')
-    parser.add_argument('--representative', action='store', dest='rep', type=int, default=0, help='which number (specifying order/location) of the input files (1, 2, or 3, etc) that is the representative to be used for I/LT50')
+    parser.add_argument('--representative', action='store', dest='rep', type=int, default=0, help='which number (specifying order/location) of the input files (1, 2, or 3, etc - based on indexing from 1) that is the representative to be used for I/LT50')
     parser.add_argument('--reportNum', action='store', dest='reportNum', type=bool, default=True, help='report the total number of worms in each concentration (summed across all input experiments), corresponding to Table 1 of the 2017 paper')
-    parser.add_argument('--logfile', action='store', dest='logfile', type=str, default='worm_analysis_{}.txt'.format(datetime.datetime.now()), help='the logfile to store information and any warning messages')
 
     return parser
 
 class WormAnalysis():
-    def __init__(self, toAssess, logfile, drug, strain, stage, concUnits, reportNum):
+    def __init__(self, toAssess, drug, strain, stage, concUnits, reportNum):
         self.drug = drug
         self.strain = strain
         self.stage = stage
@@ -80,7 +81,8 @@ class WormAnalysis():
         self.conc_colors_lo_to_hi = ['black', 'darkorange', 'darkgoldenrod', 'purple', 'limegreen', 'blue']
         self.conc_markers_lo_to_hi = ['s','o', '^', 'v', 'd', 'o']
         self.conc_marker_outline_lo_to_hi = ['black', 'darkorange', 'darkgoldenrod', 'purple', 'limegreen', 'black']
-        logging.basicConfig(filename=logfile, level=logging.INFO)
+        logfile='worm_analysis_{}_{}_{}.txt'.format(drug, stage, strain)
+        logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w', format='%(name)s - %(levelname)s - %(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
         logging.info("command used to run analysis:\n {}".format(' '.join(sys.argv)))
         self.load_data(toAssess)
         if reportNum:
@@ -224,7 +226,7 @@ class WormAnalysis():
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], '{}_isep_motility.png'.format(exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
+                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
             reshaped_mid_by_well = self.motility_index_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
@@ -235,7 +237,7 @@ class WormAnalysis():
         if plotLine1:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], '{}_isep_mortality.png'.format(exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
+                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
             reshaped_mort_by_well = self.mortality_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             mortality_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
@@ -243,6 +245,113 @@ class WormAnalysis():
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
             self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
 
+    def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True):
+        #LT50 purple, IT50 orange
+        for j, conc in enumerate(self.uniq_conc):
+            fig, ax = plt.subplots()
+
+            right_side = ax. spines["right"]
+            top_side = ax.spines["top"]
+            right_side.set_visible(False)
+            top_side.set_visible(False)
+
+            ax.set_ylabel("Percent survival")
+            ax.set_ylim(0,100)
+            y_ticklabels = np.arange(0, 150, 50)
+            ax.set_yticks(y_ticklabels)
+            y_ticklabels = y_ticklabels.astype(str)
+            for i in range(y_ticklabels.shape[0]):
+                y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
+            ax.set_yticklabels(y_ticklabels)
+            ax.yaxis.set_tick_params(width=2)
+
+            ax.axhline(50, linestyle=':', color='black')
+
+            ax.set_xlabel('Days')
+            x_ticklabels = np.arange(self.num_days+1)
+            ax.set_xticks(x_ticklabels)
+            x_ticklabels = x_ticklabels.astype(str)
+            for i in range(x_ticklabels.shape[0]):
+                x_ticklabels[i] = r'\textbf{%s}'%x_ticklabels[i]
+            ax.set_xticklabels(x_ticklabels)
+            ax.xaxis.set_tick_params(width=2)
+
+            if plot_motility:
+                ax.plot(np.arange(self.num_days + 1), inhibited[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
+            if plot_mortality:
+                ax.plot(np.arange(self.num_days + 1), mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
+
+            title = r"\textbf{%s %s %s on %s %s}" %(conc, self.concUnits_dict[self.concUnits], self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$"
+            ax.set_title(title)
+
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.7, box.height*0.65])
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.94))
+
+            new_figname = figname_base.format(conc)
+            fig.savefig(new_figname)
+            plt.close(fig)
+            logging.info('Plotted the figure {}'.format(new_figname))
+
+
+    def findSurvivability(self, toPopulate, toAnalyze, rep_index, expName, motility=False, mortality=False):
+        ''' at each step, only need to decide the number at risk - the number at risk is directly related to the percent survival
+            Then correct so that it's monotonically decreasing like graphpad does but in this case with np.minimum.accumulate(a, axis=1)
+            Finally, report the day where we cross 50% or U for undefined if we don't cross 50%'''
+        #recall toAnalyze = np.zeros((self.num_concentrations, 4, self.num_days, self.num_experiments))
+        #       toPopulate = np.full((self.num_concentrations, self.num_days+1), 100, dtype=np.float64)
+        toAnalyze_expSpec = toAnalyze[:, :, :, rep_index]
+        num_total = np.sum(toAnalyze_expSpec[:,:,0], axis=1).reshape((self.num_concentrations, 1))
+        if motility:
+            num_at_risk = toAnalyze_expSpec[:,3,:] #num at risk is only worms of score
+            num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
+            logging_value = 'IT50'
+        if mortality:
+            num_at_risk = np.sum(toAnalyze_expSpec[:,1:,:], axis=1) #num at risk is any worm of score 1, 2, or 3
+            num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
+            logging_value = 'LT50'
+        toPopulate[:, 1:] = num_at_risk_corrected/num_total*100
+
+        '''report day or U'''
+        filename = 'table2_equiv_{}_{}_{}_{}_{}.txt'.format(logging_value, self.drug, self.stage, self.strain, expName)
+        toWriteTo = open(filename, 'w+')
+        toWriteTo.write('The {} values for \n{} on {} {} _C. elegans_\n with {} as the representative experiment analyzed\n'.format(logging_value, self.drug, self.stage, self.strain, expName))
+        for i in range(self.uniq_conc.shape[0]):
+            below50 = np.sum(toPopulate[i] <= 50.0)
+            if below50 == 0:
+                T50 = 'U'
+            else:
+                T50 = self.num_days + 1 - below50
+            toWriteTo.write('{} {}:\t{}\n'.format(self.uniq_conc[i], self.concUnits_dict[self.concUnits], T50))
+        toWriteTo.close()
+        logging.info("Wrote the {} values to the file {}".format(logging_value, filename))
+
+        return toPopulate
+
+    def driveSurvivalTimePlots(self, plotIT50, plotLT50, representative, expNames):
+        if representative == 0:
+            logging.error("Must provide a representative experiment for Survival Analysis using --representative argument")
+            exit(1)
+        logging.info('Beginning Survival Analysis for {} as the representative experiment'.format(expNames[representative-1]))
+        if plotIT50:
+            inhibited = np.full((self.num_concentrations, self.num_days+1), 100, dtype=np.float64)
+            inhibited = self.findSurvivability(inhibited, self.scores3_by_conc, representative-1, expNames[representative-1], motility=True)
+        if plotLT50:
+            mortality = np.full((self.num_concentrations, self.num_days+1), 100, dtype=np.float64)
+            mortality = self.findSurvivability(mortality, self.scores3_by_conc, representative-1, expNames[representative-1], mortality=True)
+        if plotIT50 and plotLT50:
+            figname_base = '{}_IT50_LT50_' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+            self.plotSurvivalTime(inhibited, mortality, figname_base)
+        else:
+            if IT50:
+                figname_base = '{}_IT50' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+                self.plotSurvivalTime(inhibited, 0, figname_base, plot_mortality=False)
+            else:
+                logging.warning('Why do you want to plot only the LT50? I suggest plotting them together. But here you go')
+                figname_base = '{}_LT50_' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+                self.plotSurvivalTime(0, mortality, figname_base, plot_motility=False)
+        logging.info('Completed Survival Analysis')
 
     def transform_X(self, X):
         '''set [0] to x0_val'''
@@ -255,6 +364,10 @@ class WormAnalysis():
         exponent = (np.log10(ic50)- self.transform_X(X))*hillslope
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
+
+    def plotIC(self):
+        #mean values with SEM
+        return 0
 
     def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
         self.C_day = C_day
