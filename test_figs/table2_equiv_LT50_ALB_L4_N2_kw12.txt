@@ -1,9 +1,0 @@
-The LT50 values for 
-ALB on L4 N2 _C. elegans_
- with kw12 as the representative experiment analyzed
-0.0 $\mu$/mL:	U
-0.1 $\mu$/mL:	U
-1.0 $\mu$/mL:	U
-10.0 $\mu$/mL:	U
-100.0 $\mu$/mL:	U
-1000.0 $\mu$/mL:	U

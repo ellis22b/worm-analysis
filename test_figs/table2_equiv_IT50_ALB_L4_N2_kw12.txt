@@ -1,9 +1,0 @@
-The IT50 values for 
-ALB on L4 N2 _C. elegans_
- with kw12 as the representative experiment analyzed
-0.0 $\mu$/mL:	U
-0.1 $\mu$/mL:	5
-1.0 $\mu$/mL:	4
-10.0 $\mu$/mL:	4
-100.0 $\mu$/mL:	3
-1000.0 $\mu$/mL:	3
