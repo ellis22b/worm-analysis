@@ -180,44 +180,59 @@ class WormAnalysis():
         divided_to_percent_by_well = adjusted_sum_by_well/np.sum(self.scores3_by_well, axis=1)*100
         self.mortality_scores_by_well[:, 1:, :] = divided_to_percent_by_well
 
-    def plotLineCurves(self, toPlot, figname, title, ylabel, ymin, ymax, ysep):
-        '''right now this doesn't include specifying molarity of the highest concentration'''
-        fig, ax = plt.subplots()
+    def format_plots(self, ax, title, xlabel, ylabel, ymin, ymax, ysep, xticks, format_x = True):
+
+        '''turn off top and right spines'''
         right_side = ax. spines["right"]
         top_side = ax.spines["top"]
         right_side.set_visible(False)
         top_side.set_visible(False)
-        ax.set_title(title)
-        days_arr = np.arange(self.num_days + 1)
-        for i in range(toPlot.shape[0])[::-1]:
-            label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
-            ax.plot(days_arr, toPlot[i], c=self.conc_colors_lo_to_hi[i], marker=self.conc_markers_lo_to_hi[i], markeredgecolor=self.conc_marker_outline_lo_to_hi[i], label=label, clip_on = False)
-        ax.set_xlabel(r'\textbf{Days}')
-        ax.set_ylabel(r'\textbf{%s}' %ylabel)
+
+        '''set title and axis labels'''
+        ax.set_title(title, fontsize=12)
+        ax.set_xlabel(r'\textbf{%s}' %xlabel, fontsize=10)
+        ax.set_ylabel(r'\textbf{%s}' %ylabel, fontsize=10)
+
+        '''set ylim and y ticks/ticklabels'''
         ax.set_ylim(ymin, ymax)
+
         y_ticklabels = np.arange(ymin, ymax+ysep, ysep)
         ax.set_yticks(y_ticklabels)
+        ax.yaxis.set_tick_params(width=2)
         y_ticklabels = y_ticklabels.astype(str)
         for i in range(y_ticklabels.shape[0]):
             y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
         ax.set_yticklabels(y_ticklabels)
+
+        '''set x ticks/ticklabels'''
+        if format_x:
+            ax.set_xticks(xticks)
+            ax.xaxis.set_tick_params(width=2)
+            x_ticklabels = xticks.astype(str)
+            for i in range(x_ticklabels.shape[0]):
+                x_ticklabels[i] = r'\textbf{%s}'%x_ticklabels[i]
+            ax.set_xticklabels(x_ticklabels)
+
+        return ax
+
+
+    def plotLineCurves(self, toPlot, figname, title, ylabel, ymin, ymax, ysep, xlabel='Days'):
+        '''right now this doesn't include specifying molarity of the highest concentration'''
+        fig, ax = plt.subplots()
+
+        days_arr = np.arange(self.num_days + 1)
+        ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, days_arr)
+
+        for i in range(toPlot.shape[0])[::-1]:
+            label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
+            ax.plot(days_arr, toPlot[i], c=self.conc_colors_lo_to_hi[i], marker=self.conc_markers_lo_to_hi[i], markeredgecolor=self.conc_marker_outline_lo_to_hi[i], label=label, clip_on = False)
+
+        '''shrink and set legend'''
         box = ax.get_position()
-        #not shrunk version
-        #ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        #shrunk version
-        #ax.set_position([box.x0, box.y0, box.width * 0.8, box.height*0.6])
-        #shrunk less version
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height*0.75])
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.5))
-        x_ticklabels = np.arange(self.num_days+1)
-        ax.set_xticks(x_ticklabels)
-        x_ticklabels = x_ticklabels.astype(str)
-        for i in range(x_ticklabels.shape[0]):
-            x_ticklabels[i] = r'\textbf{%s}'%x_ticklabels[i]
-        ax.set_xticklabels(x_ticklabels)
-        ax.xaxis.set_tick_params(width=2)
-        ax.yaxis.set_tick_params(width=2)
+        ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.5), fontsize=9)
+
         fig.savefig(figname)
         plt.close(fig)
         logging.info('Plotted the figure {}'.format(figname))
@@ -227,13 +242,13 @@ class WormAnalysis():
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
+                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
             reshaped_mid_by_well = self.motility_index_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 motility_index_across_exp[:,j*3:(j*3)+3 ,:] = reshaped_mid_by_well[:,:,:,j]
             motility_avg_across_exp = np.mean(motility_index_across_exp, axis=1)
-            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Motility Index Score", 0, 3, 1)
+            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
 
         if plotLine1:
             if isep:
@@ -246,49 +261,27 @@ class WormAnalysis():
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
             self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
 
-    def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True):
+    def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days'):
         #LT50 purple, IT50 orange
         for j, conc in enumerate(self.uniq_conc):
             fig, ax = plt.subplots()
 
-            right_side = ax. spines["right"]
-            top_side = ax.spines["top"]
-            right_side.set_visible(False)
-            top_side.set_visible(False)
-
-            ax.set_ylabel(r"\textbf{\% Alive or \% Uninhibited}")
-            ax.set_ylim(0,100)
-            y_ticklabels = np.arange(0, 150, 50)
-            ax.set_yticks(y_ticklabels)
-            y_ticklabels = y_ticklabels.astype(str)
-            for i in range(y_ticklabels.shape[0]):
-                y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
-            ax.set_yticklabels(y_ticklabels)
-            ax.yaxis.set_tick_params(width=2)
-
             ax.axhline(50, linestyle=':', color='black')
 
-            ax.set_xlabel('Days')
-            x_ticklabels = np.arange(self.num_days+1)
-            ax.set_xticks(x_ticklabels)
-            x_ticklabels = x_ticklabels.astype(str)
-            for i in range(x_ticklabels.shape[0]):
-                x_ticklabels[i] = r'\textbf{%s}'%x_ticklabels[i]
-            ax.set_xticklabels(x_ticklabels)
-            ax.xaxis.set_tick_params(width=2)
+            title = r"\textbf{%s %s %s on %s %s}" %(conc, self.concUnits_dict[self.concUnits], self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$"
+            days_arr = np.arange(self.num_days+1)
+            ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, days_arr)
 
             if plot_motility:
-                ax.plot(np.arange(self.num_days + 1), inhibited[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
+                ax.plot(days_arr, inhibited[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
             if plot_mortality:
-                ax.plot(np.arange(self.num_days + 1), mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
+                ax.plot(days_arr, mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
 
-            title = r"\textbf{%s %s %s on %s %s}" %(conc, self.concUnits_dict[self.concUnits], self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$"
-            ax.set_title(title)
-
+            '''shrink and set legend'''
             box = ax.get_position()
             ax.set_position([box.x0, box.y0, box.width * 0.7, box.height*0.65])
             handles, labels = ax.get_legend_handles_labels()
-            ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.94))
+            ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.94), fontsize=9)
 
             new_figname = figname_base.format(conc)
             fig.savefig(new_figname)
@@ -366,7 +359,7 @@ class WormAnalysis():
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
 
-    def plotIC(self, title, figname, concs, averages, sems, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope = -1):
+    def plotIC(self, title, figname, concs, averages, sems, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope = -1, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
         linspace_x = np.log10(np.linspace(self.x0_val, np.amax(self.uniq_conc), 1000))
         linspace_x_antilog = np.power(np.tile(10, linspace_x.shape[0]), linspace_x)
 
@@ -374,30 +367,14 @@ class WormAnalysis():
 
         fig, ax = plt.subplots()
 
-        right_side = ax. spines["right"]
-        top_side = ax.spines["top"]
-        right_side.set_visible(False)
-        top_side.set_visible(False)
-
+        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
         ax.axhline(50, linestyle=':', color='black')
-
-        ax.set_title(title)
-
-        ax.set_ylabel(r"\textbf{\% Uninhibited}")
-        ax.set_ylim(0,100)
-        y_ticklabels = np.arange(0, 120, 20)
-        ax.set_yticks(y_ticklabels)
-        y_ticklabels = y_ticklabels.astype(str)
-        for i in range(y_ticklabels.shape[0]):
-            y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
-        ax.set_yticklabels(y_ticklabels)
-        ax.yaxis.set_tick_params(width=2)
+        ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, [], format_x=False)
 
         #need broken x-axis
         conc_ticks = self.uniq_conc.copy()
         bool_0 = conc_ticks == 0
         conc_ticks[bool_0] += self.x0_val
-
 
         #mean values with SEM
         ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
