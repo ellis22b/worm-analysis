@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 '''
+./ic50_test.py --toAssess test_files/kw9_export.txt test_files/kw11_export.txt test_files/kw12_export.txt --expNames kw9 kw11 kw12 --strain N2 --lifestage L4 --drug ALB --concUnits 0 --representative 3 --molarmass 265.333
+
 Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))
 where X is log10([]) with x=0 -> x=1e-6
 '''
@@ -32,14 +34,14 @@ rcParams.update(params)
 def main():
     parser = generate_parser()
     args = parser.parse_args()
-    analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.reportNum)
+    analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.molarmass, args.density, args.reportNum)
     if args.plotLine3 or args.plotLine1:
         analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
     if args.plotIT50 or args.plotLT50:
         analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
     #if args.plotIC50 or args.plotLC50:
     #    analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
-
+    analysis_instance.reportTable(args.expNames[args.rep-1])
 
 def generate_parser():
     parser = ap.ArgumentParser(description='C elegans analysis')
@@ -48,6 +50,8 @@ def generate_parser():
     parser.add_argument('--strain', action='store', dest='strain', type=str, required=True, help='the strain which was treated in the assays (ex. N2 or Hawaii); will be used to annotate plots and tables')
     parser.add_argument('--lifestage', action='store', dest='stage', type=str, required=True, help='the lifestage which was treated in the assays (ex. L1 or L4); will be used to annotate plots and tables')
     parser.add_argument('--drug', action='store', dest='drug', type=str, required=True, help='the drug used in treatment in the assays (ex. ALB, PYR, IVM, or NTZ, etc); will be used to annotate plots and tables; for now this only accepts a single value')
+    parser.add_argument('--molarmass', action='store', dest='molarmass', type=float, required=True, help='the molar mass of the drug used in treatment in the assays. Must be given in the g/mol units')
+    parser.add_argument('--densityLiq', action='store', dest='density', type=float, default=1.0, help='the density of the liquid; must be entered in g/mL; default is that of water (1 g/mL)')
     parser.add_argument('--concUnits', action='store', dest='concUnits', type=int, required=True, help='use to specify the units of the concentration. 0 is ug/mL, 1 is uM, 2 is M, 3 is mM, 4 is nM, 5 is ng/mL, 6 is mg/mL, 7 is mg/kg, 8 is mg/g')
     parser.add_argument('--plotLine3', action='store', dest='plotLine3', type=bool, default=True, help='whether to plot the daily motility response by concentration')
     parser.add_argument('--plotLine1', action='store', dest='plotLine1', type=bool, default=True, help='whether to plot the daily lethality response by concentration')
@@ -64,7 +68,7 @@ def generate_parser():
     return parser
 
 class WormAnalysis():
-    def __init__(self, toAssess, drug, strain, stage, concUnits, reportNum):
+    def __init__(self, toAssess, drug, strain, stage, concUnits, molarmass, density, reportNum):
         self.drug = drug
         self.strain = strain
         self.stage = stage
@@ -86,6 +90,7 @@ class WormAnalysis():
         logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w', format='%(name)s - %(levelname)s - %(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
         logging.info("command used to run analysis:\n {}".format(' '.join(sys.argv)))
         self.load_data(toAssess)
+        self.find_mM(molarmass, density)
         if reportNum:
             self.find_numTotal()
         self.find_motility_index_score()
@@ -97,22 +102,39 @@ class WormAnalysis():
         for i, file in enumerate(toAssess):
             df = pd.read_csv(file, sep='\t', header=0)
             if i == 0:
+                '''find unique concentrations'''
                 self.uniq_conc = np.unique(df.loc[:,'Concentration'])
+
+                '''Make a data frame to store computed values in throughout the analysis'''
+                index = []
+                units = np.tile(self.concUnits_dict[self.concUnits], self.uniq_conc.shape[0])
+                for conc, unit in zip(self.uniq_conc, units):
+                    index.append(r'\textbf{%s %s}' % (conc,unit))
+                self.df_table = pd.DataFrame(index=index)
+                self.df_table.index.name='Concentration'
+
+                '''set some dictionaries for mapping'''
                 self.conc_index = {}
                 self.index_to_conc = {}
                 for k,c in enumerate(self.uniq_conc):
                     self.conc_index[float(c)] = k
                     self.index_to_conc[k] = float(c)
+
+                '''initialize arrays for storing data'''
                 self.num_concentrations = len(self.uniq_conc)
                 self.num_days = len(np.unique(df.loc[:,'Day']))
                 self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments)) #num_concentrations*3 because concentrations for each experiment should be in triplicate, 4 because of 0-1-2-3 scoring, num_days, and num_experiments
                 self.scores3_by_conc = np.zeros((self.num_concentrations, 4, self.num_days, self.num_experiments))
+
+                '''set some more dictionaries for mapping'''
                 self.well_index_to_conc = {}
                 self.conc_to_well_index = {}
                 for well, conc in zip(np.array(df.loc[:, 'Well']).astype(np.int32)[0:self.num_concentrations*3], np.array(df.loc[:,'Concentration'])[0:self.num_concentrations*3]):
                     well_index = well-1
                     self.well_index_to_conc[well_index] = float(conc)
                     self.conc_to_well_index[float(conc)] = well_index
+
+            '''fill arrays'''
             for j, line in enumerate(open(file)):
                 if j != 0:
                     fields=line.strip('\r\n').split('\t')
@@ -139,15 +161,37 @@ class WormAnalysis():
             if num_trues != np.sum(df.loc[:,'numTotal_equal']):
                 logging.warning('wells in {} do not have equal numbers of worms in a given well across the length of the experiment'.format(file))
 
+    def find_mM(self, molarmass, density):
+        '''Questions: 1) what density is reasonable to assume 2) only 2 significant digits??'''
+        ''' given x (molarmass) of x g/mole, y max concentration of units corresponding to dictionary key, and z g/mL density
+           do the following to find the equivalent mM of the max concentration
+           ug/mL -> mM: 1 mole / x g | 1 g / 1e6 ug | y ug / 1 mL | 1e3 mL / 1 L | 1e3 mM / M
+           uM -> mM: y uM | 1 mM / 1e3 uM
+           M -> mM : y M | 1e3 mM / 1 M
+           mM = mM
+           nM -> mM: y nM | 1 mM / 1e6 nM
+           ng/mL -> mM: 1 mole / x g | 1 g / 1e9 ng | y ng / 1 mL | 1e3 mL / 1L | 1e3 mM / M
+           mg/mL -> mM: 1 mole / x g | 1 g / 1e3 mg | y mg / mL | 1e3 mL / 1L | 1e3 mM / M
+           mg/kg -> mM: 1 mole / x g | 1 g / 1e3 mg | y mg / kg | 1e3 kg / 1g | z g / 1 mL | 1e3 mL / 1 L | 1e3 mM / M
+           mg/g -> mM : 1 mole / x g | 1 g / 1e3 mg | y mg / g | z g / 1 mL | 1e3 mL / 1 L | 1e3 mM / M
+           '''
+        mM_dict = {0: 1/molarmass/1e6*np.amax(self.uniq_conc)*1e3*1e3,
+                   1: np.amax(self.uniq_conc)/1e3,
+                   2: np.amax(self.uniq_conc)*1e3,
+                   3: np.amax(self.uniq_conc),
+                   4: np.amax(self.uniq_conc)/1e6,
+                   5: 1/molarmass/1e9*np.amax(self.uniq_conc)*1e3*1e3,
+                   6: 1/molarmass/1e3*np.amax(self.uniq_conc)*1e3*1e3,
+                   7: 1/molarmass/1e3*np.amax(self.uniq_conc)*1e3*density*1e3*1e3,
+                   8: 1/molarmass/1e3*np.amax(self.uniq_conc)*density*1e3*1e3}
+
+        self.mM = '{0:.1f}'.format(mM_dict[self.concUnits])
+
     def find_numTotal(self):
         total_nums = np.sum(self.scores3_by_conc[:,:,0,:].reshape(-1, 4*self.num_experiments), axis=1)
-        filename = 'table1_equiv_numTreated_{}_{}_{}.txt'.format(self.drug, self.stage, self.strain)
-        toWriteTo = open(filename, 'w+')
-        toWriteTo.write('Number of nematodes treated\n{} on {} {} _C. elegans_\n'.format(self.drug, self.stage, self.strain))
-        for i in range(self.uniq_conc.shape[0]):
-            toWriteTo.write('{} {}:\t{}\n'.format(self.uniq_conc[i], self.concUnits_dict[self.concUnits], int(total_nums[i])))
-        toWriteTo.close()
-        logging.info("Wrote total number of nematodes treated by concentration to the file {}".format(filename))
+        self.df_table[r'\textbf{Number of Nematodes Treated}'] = total_nums.astype(np.int32)
+        logging.info("Added the total number of nematodes treated by concentration to the table which will be printed later. Column name is 'Number of Nematodes Treated'")
+
 
     def find_motility_index_score(self):
         '''setting motility index score
@@ -224,7 +268,10 @@ class WormAnalysis():
         ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, days_arr)
 
         for i in range(toPlot.shape[0])[::-1]:
-            label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
+            if i == toPlot.shape[0]-1:
+                label = "{} {}\n= {} mM".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits], self.mM)
+            else:
+                label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
             ax.plot(days_arr, toPlot[i], c=self.conc_colors_lo_to_hi[i], marker=self.conc_markers_lo_to_hi[i], markeredgecolor=self.conc_marker_outline_lo_to_hi[i], label=label, clip_on = False)
 
         '''shrink and set legend'''
@@ -300,26 +347,22 @@ class WormAnalysis():
         if motility:
             num_at_risk = toAnalyze_expSpec[:,3,:] #num at risk is only worms of score
             num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
-            logging_value = 'IT50'
+            logging_value = r'\textbf{IT50}'
+            logging_value2 = 'IT50'
         if mortality:
             num_at_risk = np.sum(toAnalyze_expSpec[:,1:,:], axis=1) #num at risk is any worm of score 1, 2, or 3
             num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
-            logging_value = 'LT50'
+            logging_value = r'\textbf{LT50}'
+            logging_value2 = 'LT50'
         toPopulate[:, 1:] = num_at_risk_corrected/num_total*100
 
         '''report day or U'''
-        filename = 'table2_equiv_{}_{}_{}_{}_{}.txt'.format(logging_value, self.drug, self.stage, self.strain, expName)
-        toWriteTo = open(filename, 'w+')
-        toWriteTo.write('The {} values for \n{} on {} {} _C. elegans_\n with {} as the representative experiment analyzed\n'.format(logging_value, self.drug, self.stage, self.strain, expName))
-        for i in range(self.uniq_conc.shape[0]):
-            below50 = np.sum(toPopulate[i] <= 50.0)
-            if below50 == 0:
-                T50 = 'U'
-            else:
-                T50 = self.num_days + 1 - below50
-            toWriteTo.write('{} {}:\t{}\n'.format(self.uniq_conc[i], self.concUnits_dict[self.concUnits], T50))
-        toWriteTo.close()
-        logging.info("Wrote the {} values to the file {}".format(logging_value, filename))
+        T50 = np.sum(toPopulate <= 50.0, axis=1)
+        T50 = (self.num_days + 1 - T50).astype(str)
+        bool_U = T50 == str(self.num_days + 1)
+        T50[bool_U] = 'U'
+        self.df_table[logging_value] = T50
+        logging.info("Added the %s values to the table which will be printed later. Column name is '%s'" %(logging_value2, logging_value2))
 
         return toPopulate
 
@@ -390,7 +433,19 @@ class WormAnalysis():
         self.x0_val = x0_val
 
 
-
+    def reportTable(self, rep_exp):
+        fig, ax = plt.subplots()
+        #hide axes
+        fig.patch.set_visible(False)
+        ax.axis('off')
+        ax.axis('tight')
+        #write table
+        ax.table(cellText=self.df_table.values, colLabels=self.df_table.columns, rowLabels=self.df_table.index, cellLoc = 'center', loc='center')
+        fig.tight_layout()
+        filename='table_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp)
+        fig.savefig(filename, format='pdf')
+        plt.close(fig)
+        logging.info('Wrote table of computed values to {}'.format(filename))
 
 
 main()
