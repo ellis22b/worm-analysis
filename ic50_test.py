@@ -8,6 +8,7 @@ where X is log10([]) with x=0 -> x=1e-6
 import numpy as np
 import argparse as ap
 from scipy.optimize import curve_fit
+from scipy.stats import sem
 import logging
 import pandas as pd
 import datetime
@@ -32,8 +33,8 @@ def main():
     parser = generate_parser()
     args = parser.parse_args()
     analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.reportNum)
-    #if args.plotLine3 or args.plotLine1:
-    #    analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+    if args.plotLine3 or args.plotLine1:
+        analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
     if args.plotIT50 or args.plotLT50:
         analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
     #if args.plotIC50 or args.plotLC50:
@@ -69,8 +70,8 @@ class WormAnalysis():
         self.stage = stage
         self.concUnits = concUnits
 
-        self.concUnits_dict = { 0: r"$\mu$"+"/mL",
-                                1: r"$\mu$"+"M",
+        self.concUnits_dict = { 0: r"\boldmath$\mu$" + "g/mL",
+                                1: r"\boldmath$\mu$" + "M",
                                 2: "M",
                                 3: "mM",
                                 4: "nM",
@@ -237,13 +238,13 @@ class WormAnalysis():
         if plotLine1:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
+                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
             reshaped_mort_by_well = self.mortality_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             mortality_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 mortality_across_exp[:,j*3:(j*3)+3, :] = reshaped_mort_by_well[:,:,:,j]
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
-            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "Percent Alive", 0, 100, 25)
+            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
 
     def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True):
         #LT50 purple, IT50 orange
@@ -255,7 +256,7 @@ class WormAnalysis():
             right_side.set_visible(False)
             top_side.set_visible(False)
 
-            ax.set_ylabel("Percent survival")
+            ax.set_ylabel(r"\textbf{\% Alive or \% Uninhibited}")
             ax.set_ylim(0,100)
             y_ticklabels = np.arange(0, 150, 50)
             ax.set_yticks(y_ticklabels)
@@ -365,8 +366,46 @@ class WormAnalysis():
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
 
-    def plotIC(self):
+    def plotIC(self, title, figname, concs, averages, sems, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope = -1):
+        linspace_x = np.log10(np.linspace(self.x0_val, np.amax(self.uniq_conc), 1000))
+        linspace_x_antilog = np.power(np.tile(10, linspace_x.shape[0]), linspace_x)
+
+        curve = self.inhibitorResponse_equation(linspace_x, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope)
+
+        fig, ax = plt.subplots()
+
+        right_side = ax. spines["right"]
+        top_side = ax.spines["top"]
+        right_side.set_visible(False)
+        top_side.set_visible(False)
+
+        ax.axhline(50, linestyle=':', color='black')
+
+        ax.set_title(title)
+
+        ax.set_ylabel(r"\textbf{\% Uninhibited}")
+        ax.set_ylim(0,100)
+        y_ticklabels = np.arange(0, 120, 20)
+        ax.set_yticks(y_ticklabels)
+        y_ticklabels = y_ticklabels.astype(str)
+        for i in range(y_ticklabels.shape[0]):
+            y_ticklabels[i] = r'\textbf{%s}'%y_ticklabels[i]
+        ax.set_yticklabels(y_ticklabels)
+        ax.yaxis.set_tick_params(width=2)
+
+        #need broken x-axis
+        conc_ticks = self.uniq_conc.copy()
+        bool_0 = conc_ticks == 0
+        conc_ticks[bool_0] += self.x0_val
+
+
         #mean values with SEM
+        ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
+        ax.plot(linspace_x_antilog, curve, c='black')
+
+        fig.savefig(figname)
+        plt.close(fig)
+
         return 0
 
     def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
