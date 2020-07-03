@@ -411,7 +411,12 @@ class WormAnalysis():
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
 
+    def hill_langmuir_equation(self, X, half_bound_conc, hill):
+        Y = 1/(1 + (half_bound_conc/X)**hill)
+        return Y*100
+
     def plotIC(self, title, figname, concs, averages, sems, curve_fit_ic50, curve_fit_hillslope = -1, curve_fit_top= 100, curve_fit_bottom=0, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
+        '''Let's try plotting with the Hill-Langmuir equation. Because plotting the inhibitor response curve isn't looking like the prism graphs'''
         conc_ticks = self.uniq_conc.copy()
         bool_0 = conc_ticks == 0
         conc_ticks[bool_0] = self.x0_val
@@ -436,7 +441,16 @@ class WormAnalysis():
         linspace_x2_antilog = np.power(np.tile(10, linspace_x2.shape[0]), linspace_x2)
 
         curve1 = self.inhibitorResponse_equation(linspace_x1, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
+        #this is completely NaNs - WHY?
         curve2 = self.inhibitorResponse_equation(linspace_x2, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
+        #this has a lot of NaNs - WHY?
+
+        curve1 = self.hill_langmuir_equation(linspace_x1, curve_fit_ic50, curve_fit_hillslope)
+        #this is completely NaNs - WHY?
+        curve2 = self.hill_langmuir_equation(linspace_x2, curve_fit_ic50, curve_fit_hillslope)
+        #this has a lot of NaNs - WHY?
+
+        #These NaNs are NOT good. Need to be fixed to plot this correctly.
 
         fig = plt.figure(constrained_layout=True)
         widths = [1, 8]
@@ -469,11 +483,15 @@ class WormAnalysis():
 
         #mean values with SEM
         #ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
-        ax1.scatter(log_concs, averages, marker='o', color='black', clip_on=False)
+        e = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
+        for b in e[1]:
+            b.set_clip_on(False)
         ax1.set_xlim(log_conc_ticks[0], log_conc_ticks[0]+1)
         ax1.set_xticks([log_conc_ticks[0], log_conc_ticks[0]+1])
         ax1.set_xticklabels([self.x0_val, ' '])
-        ax2.scatter(log_concs, averages, marker='o', color='black', clip_on=False)
+        e = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
+        for b in e[1]:
+            b.set_clip_on(False)
         ax2.set_xlim(log_conc_ticks[1], log_conc_ticks[-1])
         ax2.set_xticks(log_conc_ticks[1:])
         ax2.set_xticklabels(conc_ticks[1:])
@@ -486,6 +504,7 @@ class WormAnalysis():
 
         fig.savefig(figname)
         plt.close(fig)
+        logging.info('Plotted the figure {}'.format(figname))
 
     def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
         #Look at each well self.scores3_by_well
@@ -528,6 +547,7 @@ class WormAnalysis():
             popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
             top_10, bottom_10, ic50_10, hill_10 = popt[0], popt[1], popt[2], popt[3]
             logging.info('Returned lm fit for 1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_10, bottom_10, ic50_10, hill_10))
+            self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, hill_10)
             logging_value = r'\textbf{LC50}'
             logging_value2 = 'LC50'
             logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -539,11 +559,13 @@ class WormAnalysis():
             self.df_tabled.loc[logging_day, logging_value] = to_log
             logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
 
+
         if plotIC50:
             logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
             popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
             top_30, bottom_30, ic50_30, hill_30 = popt2[0], popt2[1], popt2[2], popt2[3]
             logging.info('Returned lm fit for 3-2-1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_30, bottom_30, ic50_30, hill_30))
+            self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, hill_30)
             logging_value = r'\textbf{IC50}'
             logging_value2 = 'IC50'
             logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -554,6 +576,8 @@ class WormAnalysis():
                 to_log = r'\textless' + '{}'.format(lowest_nz_conc)
             self.df_tabled.loc[logging_day, logging_value] = to_log
             logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+
+        logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
 
     def reportTable(self, rep_exp, reportNum, plotIT50, plotLT50, plotIC50, plotLC50):
         '''write pandas dataframes of computed values [(number of worms treated, IT50, LT50) and (IC50, LC50) to a pdf file with table(s)'''
