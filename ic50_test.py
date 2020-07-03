@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 '''
+Usage example:
 ./ic50_test.py --toAssess test_files/kw9_export.txt test_files/kw11_export.txt test_files/kw12_export.txt --expNames kw9 kw11 kw12 --strain N2 --lifestage L4 --drug ALB --concUnits 0 --representative 3 --molarmass 265.333
-
-Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))
-where X is log10([]) with x=0 -> x=1e-6
 '''
 
 import numpy as np
@@ -36,12 +34,12 @@ def main():
     args = parser.parse_args()
     analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.molarmass, args.density, args.reportNum)
     if args.plotLine3 or args.plotLine1:
-        analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+       analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
     if args.plotIT50 or args.plotLT50:
-        analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
-    #if args.plotIC50 or args.plotLC50:
-    #    analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
-    analysis_instance.reportTable(args.expNames[args.rep-1])
+       analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
+    if args.plotIC50 or args.plotLC50:
+        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
+    analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
 
 def generate_parser():
     parser = ap.ArgumentParser(description='C elegans analysis')
@@ -96,7 +94,6 @@ class WormAnalysis():
         self.find_motility_index_score()
         self.find_mortality_score()
 
-
     def load_data(self, toAssess):
         self.num_experiments = len(toAssess)
         for i, file in enumerate(toAssess):
@@ -105,13 +102,13 @@ class WormAnalysis():
                 '''find unique concentrations'''
                 self.uniq_conc = np.unique(df.loc[:,'Concentration'])
 
-                '''Make a data frame to store computed values in throughout the analysis'''
+                '''Make a data frame to store computed values in throughout the analysis; index is concentration'''
                 index = []
                 units = np.tile(self.concUnits_dict[self.concUnits], self.uniq_conc.shape[0])
                 for conc, unit in zip(self.uniq_conc, units):
                     index.append(r'\textbf{%s %s}' % (conc,unit))
-                self.df_table = pd.DataFrame(index=index)
-                self.df_table.index.name='Concentration'
+                self.df_tablec = pd.DataFrame(index=index)
+                self.df_tablec.index.name='Concentration'
 
                 '''set some dictionaries for mapping'''
                 self.conc_index = {}
@@ -120,13 +117,24 @@ class WormAnalysis():
                     self.conc_index[float(c)] = k
                     self.index_to_conc[k] = float(c)
 
-                '''initialize arrays for storing data'''
+                '''find number of concentrations and days'''
                 self.num_concentrations = len(self.uniq_conc)
                 self.num_days = len(np.unique(df.loc[:,'Day']))
+
+                '''Make a data frame to store computed values in throughout the analysis; index is Day'''
+                days_arr = np.arange(self.num_days+1).astype(str)
+                for k in range(days_arr.shape[0]):
+                    days_arr[k] = r'\textbf{%s}' % days_arr[k]
+                self.df_tabled = pd.DataFrame(index=days_arr)
+                self.df_tabled.index.name='Day'
+                self.df_tabled[r'\textbf{LC50}'] = np.tile('NC', days_arr.shape[0])
+                self.df_tabled[r'\textbf{IC50}'] = np.tile('NC', days_arr.shape[0])
+
+                '''initialize arrays for storing data'''
                 self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments)) #num_concentrations*3 because concentrations for each experiment should be in triplicate, 4 because of 0-1-2-3 scoring, num_days, and num_experiments
                 self.scores3_by_conc = np.zeros((self.num_concentrations, 4, self.num_days, self.num_experiments))
 
-                '''set some more dictionaries for mapping'''
+                '''set some more dictionaries for mapping; note that well index is base 0'''
                 self.well_index_to_conc = {}
                 self.conc_to_well_index = {}
                 for well, conc in zip(np.array(df.loc[:, 'Well']).astype(np.int32)[0:self.num_concentrations*3], np.array(df.loc[:,'Concentration'])[0:self.num_concentrations*3]):
@@ -162,7 +170,7 @@ class WormAnalysis():
                 logging.warning('wells in {} do not have equal numbers of worms in a given well across the length of the experiment'.format(file))
 
     def find_mM(self, molarmass, density):
-        '''Questions: 1) what density is reasonable to assume 2) only 2 significant digits??'''
+        '''Questions: 1) what density is reasonable to assume 2) only 1 decimal place??'''
         ''' given x (molarmass) of x g/mole, y max concentration of units corresponding to dictionary key, and z g/mL density
            do the following to find the equivalent mM of the max concentration
            ug/mL -> mM: 1 mole / x g | 1 g / 1e6 ug | y ug / 1 mL | 1e3 mL / 1 L | 1e3 mM / M
@@ -189,7 +197,7 @@ class WormAnalysis():
 
     def find_numTotal(self):
         total_nums = np.sum(self.scores3_by_conc[:,:,0,:].reshape(-1, 4*self.num_experiments), axis=1)
-        self.df_table[r'\textbf{Number of Nematodes Treated}'] = total_nums.astype(np.int32)
+        self.df_tablec[r'\textbf{Number of Nematodes Treated}'] = total_nums.astype(np.int32)
         logging.info("Added the total number of nematodes treated by concentration to the table which will be printed later. Column name is 'Number of Nematodes Treated'")
 
 
@@ -225,9 +233,8 @@ class WormAnalysis():
         self.mortality_scores_by_well[:, 1:, :] = divided_to_percent_by_well
 
     def format_plots(self, ax, title, xlabel, ylabel, ymin, ymax, ysep, xticks, format_x = True):
-
         '''turn off top and right spines'''
-        right_side = ax. spines["right"]
+        right_side = ax.spines["right"]
         top_side = ax.spines["top"]
         right_side.set_visible(False)
         top_side.set_visible(False)
@@ -259,16 +266,15 @@ class WormAnalysis():
 
         return ax
 
-
     def plotLineCurves(self, toPlot, figname, title, ylabel, ymin, ymax, ysep, xlabel='Days'):
-        '''right now this doesn't include specifying molarity of the highest concentration'''
+        '''Specifies molarity of the highest concentration'''
         fig, ax = plt.subplots()
 
         days_arr = np.arange(self.num_days + 1)
         ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, days_arr)
 
         for i in range(toPlot.shape[0])[::-1]:
-            if i == toPlot.shape[0]-1:
+            if i == toPlot.shape[0]-1 and (self.concUnits in [0, 5, 6, 7, 8]):
                 label = "{} {}\n= {} mM".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits], self.mM)
             else:
                 label = "{} {}".format(self.uniq_conc[i], self.concUnits_dict[self.concUnits])
@@ -285,7 +291,7 @@ class WormAnalysis():
         logging.info('Plotted the figure {}'.format(figname))
 
     def driveLinePlots(self, plotLine3, plotLine1, isep, expNames):
-        '''Do we want to include the functionality to compute and plot stdev?'''
+        '''Do we want to include the functionality to compute and plot stdev and sem? -- yes; do this'''
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
@@ -309,7 +315,6 @@ class WormAnalysis():
             self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
 
     def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days'):
-        #LT50 purple, IT50 orange
         for j, conc in enumerate(self.uniq_conc):
             fig, ax = plt.subplots()
 
@@ -361,7 +366,7 @@ class WormAnalysis():
         T50 = (self.num_days + 1 - T50).astype(str)
         bool_U = T50 == str(self.num_days + 1)
         T50[bool_U] = 'U'
-        self.df_table[logging_value] = T50
+        self.df_tablec[logging_value] = T50
         logging.info("Added the %s values to the table which will be printed later. Column name is '%s'" %(logging_value2, logging_value2))
 
         return toPopulate
@@ -398,54 +403,203 @@ class WormAnalysis():
         return np.log10(X)
 
     def inhibitorResponse_equation(self, X, top, bottom, ic50, hillslope=-1):
+        '''
+        Y=Bottom + (Top-Bottom)/(1+10^((LogIC50-X)*HillSlope))
+        where X is log10([]) with x=0 -> x=1e-6 (i.e. call self.transform_X(X))
+        '''
         exponent = (np.log10(ic50)- self.transform_X(X))*hillslope
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
 
-    def plotIC(self, title, figname, concs, averages, sems, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope = -1, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
-        linspace_x = np.log10(np.linspace(self.x0_val, np.amax(self.uniq_conc), 1000))
-        linspace_x_antilog = np.power(np.tile(10, linspace_x.shape[0]), linspace_x)
-
-        curve = self.inhibitorResponse_equation(linspace_x, curve_fit_top, curve_fit_bottom, curve_fit_ic50, curve_fit_hillslope)
-
-        fig, ax = plt.subplots()
-
-        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
-        ax.axhline(50, linestyle=':', color='black')
-        ax = self.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, [], format_x=False)
-
-        #need broken x-axis
+    def plotIC(self, title, figname, concs, averages, sems, curve_fit_ic50, curve_fit_hillslope = -1, curve_fit_top= 100, curve_fit_bottom=0, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
         conc_ticks = self.uniq_conc.copy()
         bool_0 = conc_ticks == 0
-        conc_ticks[bool_0] += self.x0_val
+        conc_ticks[bool_0] = self.x0_val
+        log_conc_ticks = np.log10(conc_ticks)
+
+        bool_0 = concs == 0
+        concs[bool_0] = self.x0_val
+        log_concs = np.log10(concs)
+
+
+        antilog_ax1_lim0 = self.x0_val
+        ax1_lim0 = np.log10(self.x0_val)
+        antilog_ax1_lim1 = np.power(10, np.log10(self.x0_val)+1)
+        ax1_lim1 = np.log10(self.x0_val) + 1
+        antilog_ax2_lim0 = conc_ticks[1]
+        ax2_lim0 = np.log10(conc_ticks[1])
+        antilog_ax2_lim1 = conc_ticks[-1]
+        ax2_lim1 = np.log10(conc_ticks[-1])
+        linspace_x1 = np.log10(np.linspace(antilog_ax1_lim0, antilog_ax1_lim1, 10e2))
+        linspace_x2 = np.log10(np.linspace(antilog_ax2_lim0, antilog_ax2_lim1, 10e4))
+        linspace_x1_antilog = np.power(np.tile(10, linspace_x1.shape[0]), linspace_x1)
+        linspace_x2_antilog = np.power(np.tile(10, linspace_x2.shape[0]), linspace_x2)
+
+        curve1 = self.inhibitorResponse_equation(linspace_x1, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
+        curve2 = self.inhibitorResponse_equation(linspace_x2, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
+
+        fig = plt.figure(constrained_layout=True)
+        widths = [1, 8]
+        gs = fig.add_gridspec(1, 2, width_ratios=widths)
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[0,1])
+
+        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
+        ax1.axhline(50, linestyle=':', color='black', clip_on=False)
+        ax2.axhline(50, linestyle=':', color='black', clip_on=False)
+
+        right_side1 = ax1.spines["right"]
+        top_side1 = ax1.spines["top"]
+        right_side2 = ax2.spines["right"]
+        top_side2 = ax2.spines["top"]
+        left_side2 = ax2.spines["left"]
+        right_side1.set_visible(False)
+        top_side1.set_visible(False)
+        right_side2.set_visible(False)
+        top_side2.set_visible(False)
+        left_side2.set_visible(False)
+        fig.suptitle(title)
+        ax1.set_ylabel(ylabel)
+        ax1.set_ylim(ymin, ymax, ysep)
+        ax2.set_ylim(ymin, ymax, ysep)
+        ax2.set_yticks([])
+        ax2.set_yticklabels([])
+        ax2.set_xlabel(xlabel)
+        #fig.align_xlabels()
 
         #mean values with SEM
-        ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
-        ax.plot(linspace_x_antilog, curve, c='black')
+        #ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
+        ax1.scatter(log_concs, averages, marker='o', color='black', clip_on=False)
+        ax1.set_xlim(log_conc_ticks[0], log_conc_ticks[0]+1)
+        ax1.set_xticks([log_conc_ticks[0], log_conc_ticks[0]+1])
+        ax1.set_xticklabels([self.x0_val, ' '])
+        ax2.scatter(log_concs, averages, marker='o', color='black', clip_on=False)
+        ax2.set_xlim(log_conc_ticks[1], log_conc_ticks[-1])
+        ax2.set_xticks(log_conc_ticks[1:])
+        ax2.set_xticklabels(conc_ticks[1:])
+        ax1.plot(linspace_x1, curve1, c='black', clip_on=False)
+        ax2.plot(linspace_x2, curve2, c='black', clip_on=False)
+
+        #plt.subplots_adjust(wspace=0.05)
+        ax1.plot((1,1), (1,1), color='black', clip_on=False) #bottom-left line
+        ax2.plot((0,0), (1,1), color='black', clip_on=False) #bottom-right line
 
         fig.savefig(figname)
         plt.close(fig)
 
-        return 0
-
     def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
+        #Look at each well self.scores3_by_well
+        #recall self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments))
+        #Use these to go from well to conc etc
+        #self.well_index_to_conc = {}
+        #self.conc_to_well_index = {}
         self.C_day = C_day
         self.x0_val = x0_val
+        totals = np.sum(self.scores3_by_well[:,:,self.C_day-1,:], axis=1)
 
+        uninhibited3 = self.scores3_by_well[:,3,self.C_day-1,:]/totals*100
+        uninhibited1 = np.sum(self.scores3_by_well[:,1:,self.C_day-1,:], axis=1)/totals*100
 
-    def reportTable(self, rep_exp):
-        fig, ax = plt.subplots()
-        #hide axes
-        fig.patch.set_visible(False)
-        ax.axis('off')
-        ax.axis('tight')
-        #write table
-        ax.table(cellText=self.df_table.values, colLabels=self.df_table.columns, rowLabels=self.df_table.index, cellLoc = 'center', loc='center')
+        '''find averages and SEMs (note: we plot SEMs because we want to look at the fit of the data to the curve fit model)'''
+        toAvg_3 = np.zeros((self.num_concentrations, 3*self.num_experiments))
+        toAvg_1 = np.zeros((self.num_concentrations, 3*self.num_experiments))
+        for i in range(uninhibited3.shape[0]):
+            toAvg_3[self.conc_index[self.well_index_to_conc[i]], ((i%3) * self.num_experiments) : (((i%3)+1) * self.num_experiments)] = uninhibited3[i].copy()
+            toAvg_1[self.conc_index[self.well_index_to_conc[i]], ((i%3) * self.num_experiments) : (((i%3)+1) * self.num_experiments)] = uninhibited1[i].copy()
+
+        sem3 = sem(toAvg_3, axis=1)
+        avg3 = np.average(toAvg_3, axis=1)
+
+        sem1 = sem(toAvg_1, axis=1)
+        avg1 = np.average(toAvg_1, axis=1)
+
+        conc_X = np.tile(np.array([self.well_index_to_conc[x] for x in np.arange(self.num_concentrations*3)]).reshape(-1, 1), (1, self.num_experiments))
+
+        P0_30_top, P0_10_top = np.amax(avg3), np.amax(avg1)
+        P0_30_bottom, P0_10_bottom = np.amin(avg3), np.amin(avg1)
+        P0_30_ic50, P0_10_ic50 = 1, 10**1.5
+        P0_30_hill, P0_10_hill = -1, -1
+        P0_30, P0_10 = [P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill], [P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill]
+
+        lowest_nz_conc = np.sort(self.uniq_conc)[1]
+        highest_conc = np.amax(self.uniq_conc)
+        if plotLC50:
+            logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 1-0 scoring using a max number of function evaluations of {}. Initial values are the following.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(int(1e6), P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill))
+            popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
+            top_10, bottom_10, ic50_10, hill_10 = popt[0], popt[1], popt[2], popt[3]
+            logging.info('Returned lm fit for 1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_10, bottom_10, ic50_10, hill_10))
+            logging_value = r'\textbf{LC50}'
+            logging_value2 = 'LC50'
+            logging_day = r'\textbf{%s}' % str(self.C_day)
+            to_log = '{0:.3f}'.format(ic50_10)
+            if bottom_10 > 50 or ic50_10 > highest_conc:
+                to_log = r'\textgreater' + '{}'.format(highest_conc)
+            if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
+                to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+            self.df_tabled.loc[logging_day, logging_value] = to_log
+            logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+
+        if plotIC50:
+            logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
+            popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
+            top_30, bottom_30, ic50_30, hill_30 = popt2[0], popt2[1], popt2[2], popt2[3]
+            logging.info('Returned lm fit for 3-2-1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_30, bottom_30, ic50_30, hill_30))
+            logging_value = r'\textbf{IC50}'
+            logging_value2 = 'IC50'
+            logging_day = r'\textbf{%s}' % str(self.C_day)
+            to_log = '{0:.3f}'.format(ic50_30)
+            if bottom_30 > 50 or ic50_30 > highest_conc:
+                to_log = r'\textgreater' + '{}'.format(highest_conc)
+            if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
+                to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+            self.df_tabled.loc[logging_day, logging_value] = to_log
+            logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+
+    def reportTable(self, rep_exp, reportNum, plotIT50, plotLT50, plotIC50, plotLC50):
+        '''write pandas dataframes of computed values [(number of worms treated, IT50, LT50) and (IC50, LC50) to a pdf file with table(s)'''
+        if (reportNum or plotIT50 or plotLT50) and (plotIC50 or plotLC50):
+            fig, (ax1, ax2) = plt.subplots(2,1)
+            #hide axes
+            fig.patch.set_visible(False)
+            ax1.axis('off')
+            ax2.axis('off')
+            ax1.axis('tight')
+            ax2.axis('tight')
+            #write table
+            ax1.table(cellText=self.df_tablec.values, colLabels=self.df_tablec.columns, rowLabels=self.df_tablec.index, cellLoc = 'center', loc='center')
+            ax2.table(cellText=self.df_tabled.values, colLabels=self.df_tabled.columns, rowLabels=self.df_tabled.index, cellLoc = 'center', loc='center')
+            filename='table_{}_{}_{}_t50repexp_{}_c50day_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp, self.C_day)
+
+        elif (plotIC50 or plotLC50) and not (reportNum or plotIT50 or plotLT50):
+            fig, ax = plt.subplots()
+            fig.patch.set_visible(False)
+            ax.axis('off')
+            ax.axis('tight')
+            ax.table(cellText=self.df_tabled.values, colLabels=self.df_tabled.columns, rowLabels=self.df_tabled.index, cellLoc = 'center', loc='center')
+            filename='table_{}_{}_{}_c50day_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day)
+
+        elif (reportNum) and not (plotIC50 or plotLC50 or plotIT50 or plotLT50):
+            fig, ax = plt.subplots()
+            fig, ax = plt.subplots()
+            fig.patch.set_visible(False)
+            ax.axis('off')
+            ax.axis('tight')
+            ax.table(cellText=self.df_tablec.values, colLabels=self.df_tablec.columns, rowLabels=self.df_tablec.index, cellLoc = 'center', loc='center')
+            filename = 'table_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain)
+
+        elif (plotLT50 or plotIT50) and not (plotIC50 or plotLC50):
+            fig, ax = plt.subplots()
+            fig, ax = plt.subplots()
+            fig.patch.set_visible(False)
+            ax.axis('off')
+            ax.axis('tight')
+            ax.table(cellText=self.df_tablec.values, colLabels=self.df_tablec.columns, rowLabels=self.df_tablec.index, cellLoc = 'center', loc='center')
+            filename = 'table_{}_{}_{}_t50repexp_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp)
+
         fig.tight_layout()
-        filename='table_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp)
         fig.savefig(filename, format='pdf')
         plt.close(fig)
-        logging.info('Wrote table of computed values to {}'.format(filename))
+        logging.info('Wrote table(s) of computed values to {}'.format(filename))
 
 
 main()
