@@ -673,17 +673,26 @@ class WormAnalysis():
                 popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
                 top_10, bottom_10, ic50_10 = popt[0], popt[1], popt[2]
                 logging.info('Returned lm fit for 1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_10, bottom_10, ic50_10))
-                self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, P0_10_hill)
-                logging_value = r'\textbf{LC50}'
-                logging_value2 = 'LC50'
-                logging_day = r'\textbf{%s}' % str(self.C_day)
-                to_log = '{0:.3f}'.format(ic50_10)
-                if bottom_10 > 50 or ic50_10 > highest_conc:
+                if top_10 == bottom_10:
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                    logging_value = r'\textbf{LC50}'
+                    logging_value2 = 'LC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
                     to_log = r'\textgreater' + '{}'.format(highest_conc)
-                if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
-                    to_log = r'\textless' + '{}'.format(lowest_nz_conc)
-                self.df_tabled.loc[logging_day, logging_value] = to_log
-                logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
+                else:
+                    self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, P0_10_hill)
+                    logging_value = r'\textbf{LC50}'
+                    logging_value2 = 'LC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = '{0:.3f}'.format(ic50_10)
+                    if bottom_10 > 50 or ic50_10 > highest_conc:
+                        to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
+                        to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
 
 
             if plotIC50:
@@ -691,17 +700,26 @@ class WormAnalysis():
                 popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
                 top_30, bottom_30, ic50_30 = popt2[0], popt2[1], popt2[2]
                 logging.info('Returned lm fit for 3-2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_30, bottom_30, ic50_30))
-                self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, P0_30_hill)
-                logging_value = r'\textbf{IC50}'
-                logging_value2 = 'IC50'
-                logging_day = r'\textbf{%s}' % str(self.C_day)
-                to_log = '{0:.3f}'.format(ic50_30)
-                if bottom_30 > 50 or ic50_30 > highest_conc:
+                if top_30 == bottom_30:
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                    logging_value = r'\textbf{IC50}'
+                    logging_value2 = 'IC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
                     to_log = r'\textgreater' + '{}'.format(highest_conc)
-                if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
-                    to_log = r'\textless' + '{}'.format(lowest_nz_conc)
-                self.df_tabled.loc[logging_day, logging_value] = to_log
-                logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
+                else:
+                    self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, P0_30_hill)
+                    logging_value = r'\textbf{IC50}'
+                    logging_value2 = 'IC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = '{0:.3f}'.format(ic50_30)
+                    if bottom_30 > 50 or ic50_30 > highest_conc:
+                        to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
+                        to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
 
             logging.info('Completed Non-linear Regression for Inhibition Response Analysis but with constrained hill slope therefore the fit is likely less than ideal')
 
