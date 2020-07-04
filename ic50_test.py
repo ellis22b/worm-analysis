@@ -12,6 +12,7 @@ from scipy.stats import sem
 import logging
 import pandas as pd
 import datetime
+import matplotlib.ticker as mtick
 import matplotlib.pyplot as plt
 import sys
 from matplotlib import rc, rcParams
@@ -38,7 +39,7 @@ def main():
     if args.plotIT50 or args.plotLT50:
        analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
     if args.plotIC50 or args.plotLC50:
-        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val)
+        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3)
     analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
 
 def generate_parser():
@@ -62,7 +63,8 @@ def generate_parser():
     parser.add_argument('--plotLT50', action='store', dest='plotLT50', type=bool, default=True, help='whether to plot the LT50 (3-2-1-0 scoring)')
     parser.add_argument('--representative', action='store', dest='rep', type=int, default=0, help='which number (specifying order/location) of the input files (1, 2, or 3, etc - based on indexing from 1) that is the representative to be used for I/LT50')
     parser.add_argument('--reportNum', action='store', dest='reportNum', type=bool, default=True, help='report the total number of worms in each concentration (summed across all input experiments), corresponding to Table 1 of the 2017 paper')
-
+    parser.add_argument('--constrain1Hill', action='store', dest='hill1', type=float, default=-0.15, required=False, help='the constant/constrained Hill Slope for 1-0 scoring to be used when fewer than 3 replicates are provided')
+    parser.add_argument('--constrain3Hill', action='store', dest='hill3', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 3-2-1-0 scoring to be used when fewer than 3 replicates are provided')
     return parser
 
 class WormAnalysis():
@@ -411,9 +413,14 @@ class WormAnalysis():
         equation = bottom + (top-bottom)/(1+(10**exponent))
         return equation
 
-    def hill_langmuir_equation(self, X, half_bound_conc, hill):
-        Y = 1/(1 + (half_bound_conc/X)**hill)
-        return Y*100
+    def dose_response_sigmoid(self, X, X_mid, hill, bottom, top):
+        '''
+        For plotting found in def 114 here (https://gist.github.com/yannabraham/5f210fed773785d8b638)
+        #Y = (c+(d-c)/(1+np.exp(b*(np.log(x)-np.log(e)))))
+        '''
+        Y = (bottom+(top-bottom)/(1+np.exp(hill*(np.log(X)-np.log(X_mid)))))
+        return Y
+
 
     def plotIC(self, title, figname, concs, averages, sems, curve_fit_ic50, curve_fit_hillslope = -1, curve_fit_top= 100, curve_fit_bottom=0, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
         '''Let's try plotting with the Hill-Langmuir equation. Because plotting the inhibitor response curve isn't looking like the prism graphs'''
@@ -428,37 +435,24 @@ class WormAnalysis():
 
 
         antilog_ax1_lim0 = self.x0_val
-        ax1_lim0 = np.log10(self.x0_val)
         antilog_ax1_lim1 = np.power(10, np.log10(self.x0_val)+1)
-        ax1_lim1 = np.log10(self.x0_val) + 1
         antilog_ax2_lim0 = conc_ticks[1]
-        ax2_lim0 = np.log10(conc_ticks[1])
         antilog_ax2_lim1 = conc_ticks[-1]
-        ax2_lim1 = np.log10(conc_ticks[-1])
         linspace_x1 = np.log10(np.linspace(antilog_ax1_lim0, antilog_ax1_lim1, 10e2))
         linspace_x2 = np.log10(np.linspace(antilog_ax2_lim0, antilog_ax2_lim1, 10e4))
         linspace_x1_antilog = np.power(np.tile(10, linspace_x1.shape[0]), linspace_x1)
         linspace_x2_antilog = np.power(np.tile(10, linspace_x2.shape[0]), linspace_x2)
 
-        curve1 = self.inhibitorResponse_equation(linspace_x1, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
-        #this is completely NaNs - WHY?
-        curve2 = self.inhibitorResponse_equation(linspace_x2, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
-        #this has a lot of NaNs - WHY?
+        curve1e = self.dose_response_sigmoid(linspace_x1_antilog, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
+        curve2e = self.dose_response_sigmoid(linspace_x2_antilog, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
 
-        curve1 = self.hill_langmuir_equation(linspace_x1, curve_fit_ic50, curve_fit_hillslope)
-        #this is completely NaNs - WHY?
-        curve2 = self.hill_langmuir_equation(linspace_x2, curve_fit_ic50, curve_fit_hillslope)
-        #this has a lot of NaNs - WHY?
-
-        #These NaNs are NOT good. Need to be fixed to plot this correctly.
-
-        fig = plt.figure(constrained_layout=True)
+        fig = plt.figure(constrained_layout=False)
         widths = [1, 8]
-        gs = fig.add_gridspec(1, 2, width_ratios=widths)
+        gs = fig.add_gridspec(1, 2, width_ratios=widths, wspace=0.05)
         ax1 = fig.add_subplot(gs[0,0])
         ax2 = fig.add_subplot(gs[0,1])
 
-        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
+
         ax1.axhline(50, linestyle=':', color='black', clip_on=False)
         ax2.axhline(50, linestyle=':', color='black', clip_on=False)
 
@@ -472,33 +466,36 @@ class WormAnalysis():
         right_side2.set_visible(False)
         top_side2.set_visible(False)
         left_side2.set_visible(False)
-        fig.suptitle(title)
-        ax1.set_ylabel(ylabel)
+        fig.suptitle(r'\textbf{%s}' %title)
+        ax1.set_ylabel(r'\textbf{%s}' %ylabel)
         ax1.set_ylim(ymin, ymax, ysep)
         ax2.set_ylim(ymin, ymax, ysep)
         ax2.set_yticks([])
         ax2.set_yticklabels([])
-        ax2.set_xlabel(xlabel)
-        #fig.align_xlabels()
+        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
+        fig.text(0.5, 0.02, r'\textbf{%s}' %xlabel, ha='center', va='center')
 
         #mean values with SEM
-        #ax.errorbar(concs, averages, yerr=sems, ls='', marker='o', mfc='black', mec='black', clip_on=False)
         e = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
         for b in e[1]:
             b.set_clip_on(False)
         ax1.set_xlim(log_conc_ticks[0], log_conc_ticks[0]+1)
         ax1.set_xticks([log_conc_ticks[0], log_conc_ticks[0]+1])
-        ax1.set_xticklabels([self.x0_val, ' '])
+        lead, power = str(self.x0_val).split("e-")
+        ax1.set_xticklabels([r'$\mathrm{10^{-%s}}$' %str(int(power)), ' '])
+
         e = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
         for b in e[1]:
             b.set_clip_on(False)
         ax2.set_xlim(log_conc_ticks[1], log_conc_ticks[-1])
         ax2.set_xticks(log_conc_ticks[1:])
-        ax2.set_xticklabels(conc_ticks[1:])
-        ax1.plot(linspace_x1, curve1, c='black', clip_on=False)
-        ax2.plot(linspace_x2, curve2, c='black', clip_on=False)
+        ticklabels = np.hstack((conc_ticks[1], conc_ticks[2:].astype(np.int32).astype(str)))
+        ax2.set_xticklabels(ticklabels)
 
-        #plt.subplots_adjust(wspace=0.05)
+        ax1.plot(linspace_x1, curve1e, c='black', clip_on=False)
+
+        ax2.plot(linspace_x2, curve2e, c='black', clip_on=False)
+
         ax1.plot((1,1), (1,1), color='black', clip_on=False) #bottom-left line
         ax2.plot((0,0), (1,1), color='black', clip_on=False) #bottom-right line
 
@@ -506,7 +503,71 @@ class WormAnalysis():
         plt.close(fig)
         logging.info('Plotted the figure {}'.format(figname))
 
-    def driveIC(self, plotIC50, plotLC50, C_day, x0_val):
+    def plotIC_noFit(self, title, figname, concs, averages, sems, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100):
+        '''Let's try plotting with the Hill-Langmuir equation. Because plotting the inhibitor response curve isn't looking like the prism graphs'''
+        conc_ticks = self.uniq_conc.copy()
+        bool_0 = conc_ticks == 0
+        conc_ticks[bool_0] = self.x0_val
+        log_conc_ticks = np.log10(conc_ticks)
+
+        bool_0 = concs == 0
+        concs[bool_0] = self.x0_val
+        log_concs = np.log10(concs)
+
+        fig = plt.figure(constrained_layout=False)
+        widths = [1, 8]
+        gs = fig.add_gridspec(1, 2, width_ratios=widths, wspace=0.05)
+        ax1 = fig.add_subplot(gs[0,0])
+        ax2 = fig.add_subplot(gs[0,1])
+
+
+        ax1.axhline(50, linestyle=':', color='black', clip_on=False)
+        ax2.axhline(50, linestyle=':', color='black', clip_on=False)
+
+        right_side1 = ax1.spines["right"]
+        top_side1 = ax1.spines["top"]
+        right_side2 = ax2.spines["right"]
+        top_side2 = ax2.spines["top"]
+        left_side2 = ax2.spines["left"]
+        right_side1.set_visible(False)
+        top_side1.set_visible(False)
+        right_side2.set_visible(False)
+        top_side2.set_visible(False)
+        left_side2.set_visible(False)
+        fig.suptitle(r'\textbf{%s}' %title)
+        ax1.set_ylabel(r'\textbf{%s}' %ylabel)
+        ax1.set_ylim(ymin, ymax, ysep)
+        ax2.set_ylim(ymin, ymax, ysep)
+        ax2.set_yticks([])
+        ax2.set_yticklabels([])
+        xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
+        fig.text(0.5, 0.02, r'\textbf{%s}' %xlabel, ha='center', va='center')
+
+        #mean values with SEM
+        e = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], marker='o', color='black', capsize=5, clip_on=False)
+        for b in e[1]:
+            b.set_clip_on(False)
+        ax1.set_xlim(log_conc_ticks[0], log_conc_ticks[0]+1)
+        ax1.set_xticks([log_conc_ticks[0], log_conc_ticks[0]+1])
+        lead, power = str(self.x0_val).split("e-")
+        ax1.set_xticklabels([r'$\mathrm{10^{-%s}}$' %str(int(power)), ' '])
+
+        e = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], marker='o', color='black', capsize=5, clip_on=False)
+        for b in e[1]:
+            b.set_clip_on(False)
+        ax2.set_xlim(log_conc_ticks[1], log_conc_ticks[-1])
+        ax2.set_xticks(log_conc_ticks[1:])
+        ticklabels = np.hstack((conc_ticks[1], conc_ticks[2:].astype(np.int32).astype(str)))
+        ax2.set_xticklabels(ticklabels)
+
+        ax1.plot((1,1), (1,1), color='black', clip_on=False) #bottom-left line
+        ax2.plot((0,0), (1,1), color='black', clip_on=False) #bottom-right line
+
+        fig.savefig(figname)
+        plt.close(fig)
+        logging.info('Plotted the figure {}'.format(figname))
+
+    def driveIC(self, plotIC50, plotLC50, C_day, x0_val, hill1, hill3):
         #Look at each well self.scores3_by_well
         #recall self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments))
         #Use these to go from well to conc etc
@@ -534,50 +595,115 @@ class WormAnalysis():
 
         conc_X = np.tile(np.array([self.well_index_to_conc[x] for x in np.arange(self.num_concentrations*3)]).reshape(-1, 1), (1, self.num_experiments))
 
-        P0_30_top, P0_10_top = np.amax(avg3), np.amax(avg1)
-        P0_30_bottom, P0_10_bottom = np.amin(avg3), np.amin(avg1)
-        P0_30_ic50, P0_10_ic50 = 1, 10**1.5
-        P0_30_hill, P0_10_hill = -1, -1
-        P0_30, P0_10 = [P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill], [P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill]
+        if self.num_experiments >= 3:
+            P0_30_top, P0_10_top = np.amax(avg3), np.amax(avg1)
+            P0_30_bottom, P0_10_bottom = np.amin(avg3), np.amin(avg1)
+            P0_30_ic50, P0_10_ic50 = 1, 10**1.5
+            P0_30_hill, P0_10_hill = -1, -1
+            P0_30, P0_10 = [P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill], [P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill]
 
-        lowest_nz_conc = np.sort(self.uniq_conc)[1]
-        highest_conc = np.amax(self.uniq_conc)
-        if plotLC50:
-            logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 1-0 scoring using a max number of function evaluations of {}. Initial values are the following.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(int(1e6), P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill))
-            popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
-            top_10, bottom_10, ic50_10, hill_10 = popt[0], popt[1], popt[2], popt[3]
-            logging.info('Returned lm fit for 1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_10, bottom_10, ic50_10, hill_10))
-            self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, hill_10)
-            logging_value = r'\textbf{LC50}'
-            logging_value2 = 'LC50'
-            logging_day = r'\textbf{%s}' % str(self.C_day)
-            to_log = '{0:.3f}'.format(ic50_10)
-            if bottom_10 > 50 or ic50_10 > highest_conc:
-                to_log = r'\textgreater' + '{}'.format(highest_conc)
-            if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
-                to_log = r'\textless' + '{}'.format(lowest_nz_conc)
-            self.df_tabled.loc[logging_day, logging_value] = to_log
-            logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+            lowest_nz_conc = np.sort(self.uniq_conc)[1]
+            highest_conc = np.amax(self.uniq_conc)
+            if plotLC50:
+                logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 1-0 scoring using a max number of function evaluations of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(int(1e6), P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill))
+                popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
+                top_10, bottom_10, ic50_10, hill_10 = popt[0], popt[1], popt[2], popt[3]
+                logging.info('Returned lm fit for 1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}\nFIT HillSlope:\t{}'.format(top_10, bottom_10, ic50_10, hill_10))
+                if top_10 == bottom_10:
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                    logging_value = r'\textbf{LC50}'
+                    logging_value2 = 'LC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
+                else:
+                    self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, hill_10)
+                    logging_value = r'\textbf{LC50}'
+                    logging_value2 = 'LC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = '{0:.3f}'.format(ic50_10)
+                    if bottom_10 > 50 or ic50_10 > highest_conc:
+                        to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
+                        to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
 
 
-        if plotIC50:
-            logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
-            popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
-            top_30, bottom_30, ic50_30, hill_30 = popt2[0], popt2[1], popt2[2], popt2[3]
-            logging.info('Returned lm fit for 3-2-1-0 scoring.\nTop:\t{}\nBottom:\t{}\nIC50:\t{}\nHillSlope:\t{}'.format(top_30, bottom_30, ic50_30, hill_30))
-            self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, hill_30)
-            logging_value = r'\textbf{IC50}'
-            logging_value2 = 'IC50'
-            logging_day = r'\textbf{%s}' % str(self.C_day)
-            to_log = '{0:.3f}'.format(ic50_30)
-            if bottom_30 > 50 or ic50_30 > highest_conc:
-                to_log = r'\textgreater' + '{}'.format(highest_conc)
-            if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
-                to_log = r'\textless' + '{}'.format(lowest_nz_conc)
-            self.df_tabled.loc[logging_day, logging_value] = to_log
-            logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+            if plotIC50:
+                logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
+                popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
+                top_30, bottom_30, ic50_30, hill_30 = popt2[0], popt2[1], popt2[2], popt2[3]
+                logging.info('Returned lm fit for 3-2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}\nFIT HillSlope:\t{}'.format(top_30, bottom_30, ic50_30, hill_30))
+                if top_30 == bottom_30:
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                    logging_value = r'\textbf{IC50}'
+                    logging_value2 = 'IC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
+                else:
+                    self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, hill_30)
+                    logging_value = r'\textbf{IC50}'
+                    logging_value2 = 'IC50'
+                    logging_day = r'\textbf{%s}' % str(self.C_day)
+                    to_log = '{0:.3f}'.format(ic50_30)
+                    if bottom_30 > 50 or ic50_30 > highest_conc:
+                        to_log = r'\textgreater' + '{}'.format(highest_conc)
+                    if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
+                        to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                    self.df_tabled.loc[logging_day, logging_value] = to_log
+                    logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
 
-        logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
+            logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
+
+        else: #if num_experiments < 3
+            P0_30_top, P0_10_top = np.amax(avg3), np.amax(avg1)
+            P0_30_bottom, P0_10_bottom = np.amin(avg3), np.amin(avg1)
+            P0_30_ic50, P0_10_ic50 = 1, 10**1.5
+            P0_30_hill, P0_10_hill = hill3, hill1 #These will be kept constant/constrained because too little data to fit
+            P0_30, P0_10 = [P0_30_top, P0_30_bottom, P0_30_ic50], [P0_10_top, P0_10_bottom, P0_10_ic50]
+
+            lowest_nz_conc = np.sort(self.uniq_conc)[1]
+            highest_conc = np.amax(self.uniq_conc)
+            if plotLC50:
+                logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 1-0 scoring using a max number of function evaluations of {} and a constant hill slope of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}'.format(int(1e6), P0_10_hill, P0_10_top, P0_10_bottom, P0_10_ic50))
+                popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))
+                top_10, bottom_10, ic50_10 = popt[0], popt[1], popt[2]
+                logging.info('Returned lm fit for 1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_10, bottom_10, ic50_10))
+                self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, P0_10_hill)
+                logging_value = r'\textbf{LC50}'
+                logging_value2 = 'LC50'
+                logging_day = r'\textbf{%s}' % str(self.C_day)
+                to_log = '{0:.3f}'.format(ic50_10)
+                if bottom_10 > 50 or ic50_10 > highest_conc:
+                    to_log = r'\textgreater' + '{}'.format(highest_conc)
+                if bottom_10 < 50 and ic50_10 < lowest_nz_conc:
+                    to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                self.df_tabled.loc[logging_day, logging_value] = to_log
+                logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+
+
+            if plotIC50:
+                logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations and a constant hill slope of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}'.format(P0_30_hill, P0_30_top, P0_30_bottom, P0_30_ic50))
+                popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
+                top_30, bottom_30, ic50_30 = popt2[0], popt2[1], popt2[2]
+                logging.info('Returned lm fit for 3-2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_30, bottom_30, ic50_30))
+                self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, P0_30_hill)
+                logging_value = r'\textbf{IC50}'
+                logging_value2 = 'IC50'
+                logging_day = r'\textbf{%s}' % str(self.C_day)
+                to_log = '{0:.3f}'.format(ic50_30)
+                if bottom_30 > 50 or ic50_30 > highest_conc:
+                    to_log = r'\textgreater' + '{}'.format(highest_conc)
+                if bottom_30 < 50 and ic50_30 < lowest_nz_conc:
+                    to_log = r'\textless' + '{}'.format(lowest_nz_conc)
+                self.df_tabled.loc[logging_day, logging_value] = to_log
+                logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'" %(logging_value2, logging_value2, self.C_day))
+
+            logging.info('Completed Non-linear Regression for Inhibition Response Analysis but with constrained hill slope therefore the fit is likely less than ideal')
 
     def reportTable(self, rep_exp, reportNum, plotIT50, plotLT50, plotIC50, plotLC50):
         '''write pandas dataframes of computed values [(number of worms treated, IT50, LT50) and (IC50, LC50) to a pdf file with table(s)'''
