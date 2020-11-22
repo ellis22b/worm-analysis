@@ -808,7 +808,6 @@ class WormAnalysis():
 
         elif (reportNum) and not (plotIC50 or plotLC50 or plotIT50 or plotLT50):
             fig, ax = plt.subplots()
-            fig, ax = plt.subplots()
             fig.patch.set_visible(False)
             ax.axis('off')
             ax.axis('tight')
@@ -816,7 +815,6 @@ class WormAnalysis():
             filename = 'table_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain)
 
         elif (plotLT50 or plotIT50) and not (plotIC50 or plotLC50):
-            fig, ax = plt.subplots()
             fig, ax = plt.subplots()
             fig.patch.set_visible(False)
             ax.axis('off')
