@@ -35,13 +35,13 @@ def main():
     parser = generate_parser()
     args = parser.parse_args()
     analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.molarmass, args.density, args.reportNum)
-    # if args.plotLine3 or args.plotLine1:
-    #    analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
-    # if args.plotIT50 or args.plotLT50:
-    #    analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
-    # if args.plotIC50 or args.plotLC50:
-    #     analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
-    # analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
+    if args.plotLine3 or args.plotLine1:
+       analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+    if args.plotIT50 or args.plotLT50:
+       analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
+    if args.plotIC50 or args.plotLC50:
+        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
+    analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
 
     if args.runNo3:
         new_log_file = 'worm_analysis_no3_{}_{}_{}.txt'.format(drug, stage, strain)
