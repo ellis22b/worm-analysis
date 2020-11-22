@@ -2,7 +2,7 @@
 
 '''
 Usage example:
-./ic50_test.py --toAssess test_files/kw9_export.txt test_files/kw11_export.txt test_files/kw12_export.txt --expNames kw9 kw11 kw12 --strain N2 --lifestage L4 --drug ALB --concUnits 0 --representative 3 --molarmass 265.333
+./screening_analysis.py --toAssess test_files/kw9_export.txt test_files/kw11_export.txt test_files/kw12_export.txt --expNames kw9 kw11 kw12 --strain N2 --lifestage L4 --drug ALB --concUnits 0 --representative 3 --molarmass 265.333
 '''
 
 import numpy as np
@@ -12,11 +12,11 @@ from scipy.stats import sem
 import logging
 import pandas as pd
 import datetime
-import matplotlib.ticker as mtick
 import matplotlib.pyplot as plt
 import sys
 from matplotlib import rc, rcParams
 from scipy.interpolate import make_interp_spline, BSpline
+from screening_analysis_no3 import WormAnalysis_no3
 
 rc('axes', linewidth=2)
 params = {'font.sans-serif': 'Helvetica',
@@ -35,13 +35,20 @@ def main():
     parser = generate_parser()
     args = parser.parse_args()
     analysis_instance = WormAnalysis(args.toAssess, args.drug, args.strain, args.stage, args.concUnits, args.molarmass, args.density, args.reportNum)
-    if args.plotLine3 or args.plotLine1:
-       analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
-    if args.plotIT50 or args.plotLT50:
-       analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
-    if args.plotIC50 or args.plotLC50:
-        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
-    analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
+    # if args.plotLine3 or args.plotLine1:
+    #    analysis_instance.driveLinePlots(args.plotLine3, args.plotLine1, args.isep, args.expNames)
+    # if args.plotIT50 or args.plotLT50:
+    #    analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
+    # if args.plotIC50 or args.plotLC50:
+    #     analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
+    # analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
+
+    if args.runNo3:
+        new_log_file = 'worm_analysis_no3_{}_{}_{}.txt'.format(drug, stage, strain)
+        logging.info('now beginning the analysis where scores 2&3 are combined. See the new logfile {} for records.'.format(new_log_file))
+        analysis_instance_no3 = WormAnalysis_no3(analysis_instance.drug, analysis_instance.strain, analysis_instance.stage, analysis_instance.uniq_conc, analysis_instance.concUnits, analysis_instance.concUnits_dict, analysis_instance.conc_colors_lo_to_hi, analysis_instance.conc_markers_lo_to_hi, analysis_instance.conc_marker_outline_lo_to_hi, analysis_instance.mM, analysis_instance.num_days, analysis_instance.num_experiments, analysis_instance.num_concentrations, analysis_instance.scores3_by_well, analysis_instance.scores3_by_conc, new_log_file)
+        analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val)
+
 
 def generate_parser():
     parser = ap.ArgumentParser(description='C elegans analysis')
@@ -68,6 +75,7 @@ def generate_parser():
     parser.add_argument('--constrain3Hill', action='store', dest='hill3', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 3-2-1-0 scoring to be used when fewer than 3 replicates are provided')
     parser.add_argument('--spline_k1', action='store', dest='spline_k1', type=int, default=3, required=False, help='the order of the first part of the spline smoothing if there is no _c50 fit')
     parser.add_argument('--spline_k2', action='store', dest='spline_k2', type=int, default=3, required=False, help='the order of the second part of the spline smoothing if there is no _c50 fit')
+    parser.add_argument('--runNo3', action='store', dest='runNo3', type=bool, default=True, help='whether to run additional analyses where the 3 & 2 scores are combined')
     return parser
 
 class WormAnalysis():
@@ -355,7 +363,7 @@ class WormAnalysis():
         toAnalyze_expSpec = toAnalyze[:, :, :, rep_index]
         num_total = np.sum(toAnalyze_expSpec[:,:,0], axis=1).reshape((self.num_concentrations, 1))
         if motility:
-            num_at_risk = toAnalyze_expSpec[:,3,:] #num at risk is only worms of score
+            num_at_risk = toAnalyze_expSpec[:,3,:] #num at risk is only worms of score 3
             num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
             logging_value = r'\textbf{IT50}'
             logging_value2 = 'IT50'
