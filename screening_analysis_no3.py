@@ -3,6 +3,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy.stats import sem
+from scipy.optimize import curve_fit
+from scipy.interpolate import make_interp_spline, BSpline
 import logging
 import datetime
 from matplotlib import rc, rcParams
@@ -21,7 +24,7 @@ params = {'font.sans-serif': 'Helvetica',
 rcParams.update(params)
 
 class WormAnalysis_no3():
-	def __init__(self, drug, strain, stage, uniq_conc, concUnits, concUnits_dict, conc_colors, conc_markers, conc_outline, mM, num_days, num_experiments, num_concentrations, scores3_by_well, scores3_by_conc, new_log_file):
+	def __init__(self, drug, strain, stage, uniq_conc, concUnits, concUnits_dict, conc_colors, conc_markers, conc_outline, C_day, x0_val, mM, num_days, num_experiments, num_concentrations, scores3_by_well, scores3_by_conc, new_log_file):
 		self.drug = drug
 		self.strain = strain
 		self.stage = stage
@@ -31,6 +34,8 @@ class WormAnalysis_no3():
 		self.conc_colors_lo_to_hi = conc_colors
 		self.conc_markers_lo_to_hi = conc_markers
 		self.conc_marker_outline_lo_to_hi = conc_outline
+        self.C_day = C_day
+        self.x0_val = x0_val
 		self.mM = mM
 		self.num_days = num_days
 		self.num_experiments = num_experiments
@@ -78,6 +83,16 @@ class WormAnalysis_no3():
 
         if plotIC50:
             print('not done yet')
+            totals = np.sum(self.scores2_by_well[:,:,self.C_day-1,:], axis=1)
+            uninhibited2 = self.scores2_by_well[:,2,self.C_day-1,:]/totals*100
+
+            toAvg2 = np.zeros((self.num_concentrations, 3*self.num_experiments))
+            for i in range(uninhibited2.shape[0]):
+                toAvg2[self.conc_index[self.well_index_to_conc[i]], ((i%3)*self.num_experiments): (((i%3)+1) * self.num_experiments)] = uninhibited2[i].copy()
+
+            sem2 = sem(toAvg2, axis=1)
+
+        self.reportTable(rep, plotIT50, plotIC50)
 
     def make_tables():
         index = []
@@ -193,3 +208,38 @@ class WormAnalysis_no3():
             fig.savefig(new_figname)
             plt.close(fig)
             logging.info('Plotted the figure {}'.format(new_figname))
+
+    def reportTable(self, rep_exp, plotIT50, plotIC50):
+        if plotIT50 and plotIC50:
+            fig, (ax1, ax2) = plt.subplots(2,1)
+            #hide axes
+            fig.patch.set_visible(False)
+            ax1.axis('off')
+            ax2.axis('off')
+            ax1.axis('tight')
+            ax2.axis('tight')
+            #write table
+            ax1.table(cellText=self.df_tablec.values, colLabels=self.df_tablec.columns, rowLabels=self.df_tablec.index, cellLoc='center', loc='center')
+            ax2.table(cellText=self.df_tabled.values, colLabels=self.df_tabled.columns, rowLabels=self.df_tabled.index, cellLoc='center', loc='center')
+            filename='table_{}_{}_{}_t50repexp_{}_c50day_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp, self.C_day)
+
+        elif plotIT50 and not plotIC50:
+            fig, ax = plt.subplots()
+            fig.patch.set_visible(False)
+            ax.axis('off')
+            ax.axis('tight')
+            ax.table(cellText=self.df_tablec.values, colLabels=self.df_tablec.columns, rowLabels=self.df_tablec.index, cellLoc='center', loc='center')
+            filename='table_{}_{}_{}_t50repexp_{}.pdf'.format(self.drug, self.stage, self.strain, rep_exp)
+
+        elif plotIC50 and not plotIT50:
+            fig, ax = plt.subplots()
+            fig.patch.set_visible(False)
+            ax.axis('off')
+            ax.axis('tight')
+            ax.table(cellText=self.df_tabled.values, colLabels=self.df_tabled.columns, rowLabels=self.df_tabled.index, cellLoc='center', loc='center')
+            filename='table_{}_{}_{}_c50day_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day)
+
+        fig.tight_layout()
+        fig.savefig(filename, format='pdf')
+        plt.close(fig)
+        logging.info('Wrote table(s) of computed values to {}'.format(filename))

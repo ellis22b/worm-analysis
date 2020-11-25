@@ -40,13 +40,16 @@ def main():
     if args.plotIT50 or args.plotLT50:
        analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames)
     if args.plotIC50 or args.plotLC50:
-        analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
+        if args.notDefaultC50:
+            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.notDefHill1, args.notDefHill3, args.spline_k1, args.spline_k2, default=False, not_default_3 = {'top':args.notDefTop3,'bottom':args.notDefBot3,'ic50':args.notDefic50,'hill':args.notDefHill3}, not_default_1 = {'top':args.notDefTop1,'bottom':args.notDefBot1,'ic50':args.notDeflc50,'hill':args.notDefHill1})
+        else:
+            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2)
     analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50)
 
     if args.runNo3:
         new_log_file = 'worm_analysis_no3_{}_{}_{}.txt'.format(drug, stage, strain)
         logging.info('now beginning the analysis where scores 2&3 are combined. See the new logfile {} for records.'.format(new_log_file))
-        analysis_instance_no3 = WormAnalysis_no3(analysis_instance.drug, analysis_instance.strain, analysis_instance.stage, analysis_instance.uniq_conc, analysis_instance.concUnits, analysis_instance.concUnits_dict, analysis_instance.conc_colors_lo_to_hi, analysis_instance.conc_markers_lo_to_hi, analysis_instance.conc_marker_outline_lo_to_hi, analysis_instance.mM, analysis_instance.num_days, analysis_instance.num_experiments, analysis_instance.num_concentrations, analysis_instance.scores3_by_well, analysis_instance.scores3_by_conc, new_log_file)
+        analysis_instance_no3 = WormAnalysis_no3(analysis_instance.drug, analysis_instance.strain, analysis_instance.stage, analysis_instance.uniq_conc, analysis_instance.concUnits, analysis_instance.concUnits_dict, analysis_instance.conc_colors_lo_to_hi, analysis_instance.conc_markers_lo_to_hi, analysis_instance.conc_marker_outline_lo_to_hi, analysis.instance.C_day, analysis.instance.x0_val, analysis_instance.mM, analysis_instance.num_days, analysis_instance.num_experiments, analysis_instance.num_concentrations, analysis_instance.scores3_by_well, analysis_instance.scores3_by_conc, new_log_file)
         analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val)
 
 
@@ -76,6 +79,15 @@ def generate_parser():
     parser.add_argument('--spline_k1', action='store', dest='spline_k1', type=int, default=3, required=False, help='the order of the first part of the spline smoothing if there is no _c50 fit')
     parser.add_argument('--spline_k2', action='store', dest='spline_k2', type=int, default=3, required=False, help='the order of the second part of the spline smoothing if there is no _c50 fit')
     parser.add_argument('--runNo3', action='store', dest='runNo3', type=bool, default=True, help='whether to run additional analyses where the 3 & 2 scores are combined')
+    parser.add_argument('--notDefaultC50', action='store_true', dest='notDefaultC50', help='provide this flag only if you want to provide and use all non-default initial parameters for C50 fits')
+    parser.add_argument('--notDefTop3', action='store', dest='notDefTop3', type=float, default=100, help='not default Top initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefTop1', action='store', dest='notDefTop1', type=float, default=100, help='not default Top initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefBot3', action='store', dest='notDefBot3', type=float, default=0, help='not default Bottom initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefBot1', action='store', dest='notDefBot1', type=float, default=0, help='not default Bottom initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefic50', action='store', dest='notDefic50', type=float, default=1, help='not default ic50 initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDeflc50', action='store', dest='notDeflc50', type=float, default=10**1.5, help='not default lc50 initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefHill3', action='store', dest='notDefHill3', type=float, default=-1, help='not default Hill Slope initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
+    parser.add_argument('--notDefHill1', action='store', dest='notDefHill1', type=float, default=-1, help='not default Hill Slope initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
     return parser
 
 class WormAnalysis():
