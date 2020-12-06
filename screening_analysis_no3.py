@@ -470,7 +470,7 @@ class WormAnalysis_no3():
 		spl_2 = make_interp_spline(log_concs[1:], averages[1:], k=spline_k2)
 		power_smooth_2 = spl_2(x_s_2)
 		s = ax2.scatter(log_conc_ticks[1:], averages[1:], c='black')
-		ax2.plot(x_s_2, power_smooth_2, c='black')
+		ax2.plot(x_s_2, power_smooth_2, c='black', clip_on=False)
 
 		s.set_clip_on(False)
 
