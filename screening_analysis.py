@@ -60,9 +60,9 @@ def analysis_structure(args, analysis_instance, figname_base=''):
 		analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames, figname_base=figname_base)
 	if args.plotIC50 or args.plotLC50:
 		if args.notDefaultC50:
-			analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.notDefHill1, args.notDefHill3, args.spline_k1, args.spline_k2, default=False, not_default_3 = {'top':args.notDefTop3,'bottom':args.notDefBot3,'ic50':args.notDefic50,'hill':args.notDefHill3}, not_default_1 = {'top':args.notDefTop1,'bottom':args.notDefBot1,'ic50':args.notDeflc50,'hill':args.notDefHill1}, figname_base=figname_base)
+			analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.notDefHill1, args.notDefHill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, default=False, not_default_3 = {'top':args.notDefTop3,'bottom':args.notDefBot3,'ic50':args.notDefic50,'hill':args.notDefHill3}, not_default_1 = {'top':args.notDefTop1,'bottom':args.notDefBot1,'ic50':args.notDeflc50,'hill':args.notDefHill1}, figname_base=figname_base)
 		else:
-			analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2, figname_base=figname_base)
+			analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, figname_base=figname_base)
 	analysis_instance.reportTable(args.expNames[args.rep-1], args.reportNum, args.plotIT50, args.plotLT50, args.plotIC50, args.plotLC50, figname_base=figname_base)
 
 
@@ -76,23 +76,23 @@ def generate_parser():
 	parser.add_argument('--molarmass', action='store', dest='molarmass', type=float, required=True, help='the molar mass of the drug used in treatment in the assays. Must be given in the g/mol units')
 	parser.add_argument('--densityLiq', action='store', dest='density', type=float, default=1.0, help='the density of the liquid; must be entered in g/mL; default is that of water (1 g/mL)')
 	parser.add_argument('--concUnits', action='store', dest='concUnits', type=int, required=True, help='use to specify the units of the concentration. 0 is ug/mL, 1 is uM, 2 is M, 3 is mM, 4 is nM, 5 is ng/mL, 6 is mg/mL, 7 is mg/kg, 8 is mg/g')
-	parser.add_argument('--plotLine3', action='store', dest='plotLine3', type=bool, default=True, help='whether to plot the daily motility response by concentration')
-	parser.add_argument('--plotLine1', action='store', dest='plotLine1', type=bool, default=True, help='whether to plot the daily lethality response by concentration')
-	parser.add_argument('--include_single_exp_plots', action='store', dest='isep', type=bool, default=False, help='when plotting the daily motility or lethalty response by concentration, whether to plot single experiments as well as the average')
-	parser.add_argument('--plotIC50', action='store', dest='plotIC50', type=bool, default=True, help='whether to plot the IC50 (3-2-1-0 scoring)')
-	parser.add_argument('--plotLC50', action='store', dest='plotLC50', type=bool, default=True, help='whether to plot the LC50 (1-0 scoring)')
+	parser.add_argument('--no_plotLine3', action='store_false', dest='plotLine3', help='add this argument to skip plotting the daily motility response by concentration')
+	parser.add_argument('--no_plotLine1', action='store_false', dest='plotLine1', help='add this argument to skip plotting the daily lethality response by concentration')
+	parser.add_argument('--include_single_exp_plots', action='store_true', dest='isep', help='when plotting the daily motility or lethalty response by concentration, add this argument to plot single experiments as well as the average')
+	parser.add_argument('--no_plotIC50', action='store_false', dest='plotIC50', help='add this argument to skip plotting the IC50 (3-2-1-0 scoring)')
+	parser.add_argument('--no_plotLC50', action='store_false', dest='plotLC50', help='add this argument to skip plotting the LC50 (1-0 scoring)')
 	parser.add_argument('--C_day', action='store', dest='C_day', type=int, default=4, help='the day (index from 1) to assess for inhibitory and/or lethal concentration')
 	parser.add_argument('--x0_value', action='store', dest='x0_val', type=float, default=1e-6, help='value to replace the x=0 [] with when transforming x')
-	parser.add_argument('--plotIT50', action='store', dest='plotIT50', type=bool, default=True, help='whether to plot the IT50 (3-2-1-0 scoring)')
-	parser.add_argument('--plotLT50', action='store', dest='plotLT50', type=bool, default=True, help='whether to plot the LT50 (3-2-1-0 scoring)')
+	parser.add_argument('--no_plotIT50', action='store_false', dest='plotIT50', help='add this argument to skip plotting the IT50 (3-2-1-0 scoring)')
+	parser.add_argument('--no_plotLT50', action='store_false', dest='plotLT50', help='add this argument to skip plotting the LT50 (3-2-1-0 scoring)')
 	parser.add_argument('--representative', action='store', dest='rep', type=int, default=0, help='which number (specifying order/location) of the input files (1, 2, or 3, etc - based on indexing from 1) that is the representative to be used for I/LT50')
-	parser.add_argument('--reportNum', action='store', dest='reportNum', type=bool, default=True, help='report the total number of worms in each concentration (summed across all input experiments), corresponding to Table 1 of the 2017 paper')
+	parser.add_argument('--reportNum', action='store_false', dest='reportNum', help='add this argument to skip reporting the total number of worms in each concentration (summed across all input experiments), corresponding to Table 1 of the 2017 paper')
 	parser.add_argument('--constrain1Hill', action='store', dest='hill1', type=float, default=-0.15, required=False, help='the constant/constrained Hill Slope for 1-0 scoring to be used when fewer than 3 replicates are provided')
 	parser.add_argument('--constrain3Hill', action='store', dest='hill3', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 3-2-1-0 scoring to be used when fewer than 3 replicates are provided')
 	parser.add_argument('--constrain2Hill', action='store', dest='hill2', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 2-1-0 scoring to be used when fewer than 3 replicates are provided')
 	parser.add_argument('--spline_k1', action='store', dest='spline_k1', type=int, default=3, required=False, help='the order of the first part of the spline smoothing if there is no _c50 fit')
 	parser.add_argument('--spline_k2', action='store', dest='spline_k2', type=int, default=3, required=False, help='the order of the second part of the spline smoothing if there is no _c50 fit')
-	parser.add_argument('--runNo3', action='store', dest='runNo3', type=bool, default=True, help='whether to run additional analyses where the 3 & 2 scores are combined')
+	parser.add_argument('--no_runNo3', action='store_false', dest='runNo3', help='add this argument to skip running additional analyses where the 3 & 2 scores are combined')
 	parser.add_argument('--notDefaultC50', action='store_true', dest='notDefaultC50', help='provide this flag only if you want to provide and use all non-default initial parameters for C50 fits')
 	parser.add_argument('--notDefTop3', action='store', dest='notDefTop3', type=float, default=100, help='not default Top initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
 	parser.add_argument('--notDefTop1', action='store', dest='notDefTop1', type=float, default=100, help='not default Top initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
@@ -102,6 +102,7 @@ def generate_parser():
 	parser.add_argument('--notDeflc50', action='store', dest='notDeflc50', type=float, default=10**1.5, help='not default lc50 initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
 	parser.add_argument('--notDefHill3', action='store', dest='notDefHill3', type=float, default=-1, help='not default Hill Slope initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
 	parser.add_argument('--notDefHill1', action='store', dest='notDefHill1', type=float, default=-1, help='not default Hill Slope initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
+	parser.add_argument('--no_use_fitTop', action='store_false', dest='fitTopPlot_bool', help='use this flag if you want to plot with the 100/0 top/bottom instead of the fit top/bottom')
 	return parser
 
 class WormAnalysis():
@@ -722,7 +723,7 @@ class WormAnalysis():
 		spl_2 = make_interp_spline(log_concs[1:], averages[1:], k=spline_k2)
 		power_smooth_2 = spl_2(x_s_2)
 		s = ax2.scatter(log_conc_ticks[1:], averages[1:], c='black')
-		ax2.plot(x_s_2, power_smooth_2, c='black')
+		ax2.plot(x_s_2, power_smooth_2, c='black', clip_on=False)
 
 		s.set_clip_on(False)
 
@@ -738,7 +739,7 @@ class WormAnalysis():
 		plt.close(fig)
 		logging.info('Plotted the figure {}'.format(figname))
 
-	def driveIC(self, plotIC50, plotLC50, C_day, x0_val, hill1, hill3, spline_k1, spline_k2, default=True, not_default_3 = {}, not_default_1 = {}, figname_base=''):
+	def driveIC(self, plotIC50, plotLC50, C_day, x0_val, hill1, hill3, spline_k1, spline_k2, fitTopPlot_bool, default=True, not_default_3 = {}, not_default_1 = {}, figname_base=''):
 		#Look at each well self.scores3_by_well
 		#recall self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments))
 		#Use these to go from well to conc etc
@@ -803,7 +804,10 @@ class WormAnalysis():
 				if no_fit_bool:
 					self.plotIC_noFit(r'$\mathrm{LC_{50}}$'+ ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
 				else:
-					self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=hill_10, curve_fit_top=top_10, curve_fit_bottom = bottom_10)
+					if fitTopPlot_bool:
+						self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=hill_10, curve_fit_top=top_10, curve_fit_bottom = bottom_10)
+					else:
+						self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, cruve_fit_hillslope=hill_10)
 			if plotIC50:
 				logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
 				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
@@ -814,7 +818,10 @@ class WormAnalysis():
 				if no_fit_bool:
 					self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
 				else:
-					self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+					if fitTopPlot_bool:
+						self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+					else:
+						self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30)
 			logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
 
 		else:
@@ -828,7 +835,10 @@ class WormAnalysis():
 				if no_fit_bool:
 					self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
 				else:
-					self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill, curve_fit_top=top_10, curve_fit_bottom=bottom_10)
+					if fitTopPlot_bool:
+						self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill, curve_fit_top=top_10, curve_fit_bottom=bottom_10)
+					else:
+						self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill)
 			if plotIC50:
 				logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations and a constant hill slope of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}'.format(P0_30_hill, P0_30_top, P0_30_bottom, P0_30_ic50))
 				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm')
@@ -839,7 +849,10 @@ class WormAnalysis():
 				if no_fit_bool:
 					self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
 				else:
-					self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+					if fitTopPlot_bool:
+						self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+					else:
+						self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill)
 			logging.info('Completed Non-linear Regression for Inhibition Response Analysis but with constrained hill slope therefore the fit is likely less than ideal')
 
 	def reportTable(self, rep_exp, reportNum, plotIT50, plotLT50, plotIC50, plotLC50, figname_base=''):

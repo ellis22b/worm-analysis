@@ -131,10 +131,8 @@ class WormAnalysis_no3():
 				no_fit_bool = self.evaluate_no_fit(top_20, bottom_20, ic50_20, highest_conc)
 				self.set_to_log_value(bottom_20, ic50_20, highest_conc, lowest_nz_conc)
 				if no_fit_bool:
-					print('I went here')
 					self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}_no3.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg2, sem2, spline_k1, spline_k2)
 				else:
-					print('I actually went here')
 					self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}_no3.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg2, sem2, ic50_20, curve_fit_hillslope=P0_20_hill, curve_fit_top=top_20, curve_fit_bottom=bottom_20)
 				logging.info('Completed Non-linear Regression for Inhibition Response Analysis but with constrained hill slope and therefore the fit is likely less than ideal')
 		self.reportTable(expNames[rep-1], plotIT50, plotIC50)
@@ -146,7 +144,7 @@ class WormAnalysis_no3():
 		to_log = '{0:.3f}'.format(ic50_20)
 		if bottom_20 > 50 or ic50_20 > highest_conc:
 			to_log = r'\textgreater' + '{}'.format(highest_conc)
-		elif bottom_20 < 50 and ic50 < lowest_nz_conc:
+		elif bottom_20 < 50 and ic50_20 < lowest_nz_conc:
 			to_log = r'\textless' + '{}'.format(lowest_nz_conc)
 		self.df_tabled.loc[logging_day, logging_value] = to_log
 		logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s" %(logging_value2, logging_value2, self.C_day))
@@ -382,7 +380,7 @@ class WormAnalysis_no3():
 		ax2.set_yticks([])
 		ax2.set_yticklabels([])
 		xlabel='Concentration (%s)' % self.concUnits_dict[self.concUnits]
-		fig.text(0,5, 0.02, r'\textbf{%s}' %xlabel, ha='center', va='center')
+		fig.text(0.5, 0.02, r'\textbf{%s}' %xlabel, ha='center', va='center')
 
 		e = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
 		for b in e[1]:
@@ -395,7 +393,7 @@ class WormAnalysis_no3():
 		e = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
 		for b in e[1]:
 			b.set_clip_on(False)
-		ax2.set_xlim(log_conc_ticks[1], loc_conc_ticks[-1])
+		ax2.set_xlim(log_conc_ticks[1], log_conc_ticks[-1])
 		ax2.set_xticks(log_conc_ticks[1:])
 		ticklabels = np.hstack((conc_ticks[1], conc_ticks[2:].astype(np.int32).astype(str)))
 		ax2.set_xticklabels(ticklabels)
