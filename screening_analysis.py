@@ -977,57 +977,84 @@ class WormAnalysis():
             if motility_bool:
                 df_table_i = pd.DataFrame(index=compare_with_concs)
                 df_table_i.index.name = "Concentration (ug/mL)"
+                df_table_i_bools = pd.DataFrame(index=compare_with_concs)
+                df_table_i_bools.index.name = "Concentration (ug/mL)"
             if mortality_bool:
                 df_table_m = pd.DataFrame(index=compare_with_concs)
                 df_table_m.index.name = "Concentration (ug/mL)"
+                df_table_m_bools = pd.DataFrame(index=compare_with_concs)
+                df_table_m_bools.index.name = "Concentration (ug/mL)"
             for compare_day in compare_days:
                 if motility_bool:
                     compare_to_inh = self.make_inh_arr(np.sum(self.scores3_by_conc[compare_to_index, :, compare_day -1, :], axis=1))
                     pvals_i = np.array([])
+                    pvals_i_bools = np.array([])
                 if mortality_bool:
                     compare_to_mor = self.make_mor_arr(np.sum(self.scores3_by_conc[compare_to_index, :, compare_day -1, :], axis=1))
                     pvals_m = np.array([])
+                    pvals_m_bools = np.array([])
                 for compare_with in compare_with_concs:
                     compare_with_index = self.conc_index[compare_with]
                     if motility_bool:
                         compare_with_inh = self.make_inh_arr(np.sum(self.scores3_by_conc[compare_with_index, :, compare_day -1, :], axis=1))
                         if np.sum(compare_with_inh > 5) == 2 and np.sum(compare_to_inh > 5) == 2:
+                            #print(compare_with_inh, compare_to_inh)
                             chisq, pval_i = chisquare(compare_with_inh, f_exp = compare_to_inh)
+                            pval_bool = pval_i < 0.05
                             pval_i = format(pval_i, ".2e")
+
                         else:
                             pval_i = "U"
+                            pval_bool = "NC"
                         pvals_i = np.hstack((pvals_i, pval_i))
+                        pvals_i_bools = np.hstack((pvals_i_bools, pval_bool))
                     if mortality_bool:
                         compare_with_mor = self.make_mor_arr(np.sum(self.scores3_by_conc[compare_with_index, :, compare_day -1, :], axis=1))
-                        if np.sum(compare_with_inh > 5) == 2 and np.sum(compare_to_inh > 5) == 2:
+                        if np.sum(compare_with_mor > 5) == 2 and np.sum(compare_to_mor > 5) == 2:
+                            #print(compare_with_mor, compare_to_mor)
                             chisq, pval_m = chisquare(compare_with_mor, f_exp = compare_to_mor)
+                            pval_bool = pval_m < 0.05
                             pval_m = format(pval_m, ".2e")
                         else:
                             pval_m = "U"
+                            pval_bool = "NC"
                         pvals_m = np.hstack((pvals_m, pval_m))
+                        pvals_m_bools = np.hstack((pvals_m_bools, pval_bool))
 
 
                 if motility_bool:
                     df_table_i["Day {}".format(compare_day)] = pvals_i
+                    df_table_i_bools["Day {}".format(compare_day)] = pvals_i_bools
+                    df_table_i_bools["Day {}".format(compare_day)][df_table_i_bools["Day {}".format(compare_day)] != "NC"] = df_table_i_bools["Day {}".format(compare_day)][df_table_i_bools["Day {}".format(compare_day)] != "NC"].astype('bool')
                 if mortality_bool:
                     df_table_m["Day {}".format(compare_day)] = pvals_m
+                    df_table_m_bools["Day {}".format(compare_day)] = pvals_m_bools
+                    df_table_m_bools["Day {}".format(compare_day)][df_table_m_bools["Day {}".format(compare_day)] != "NC"] = df_table_m_bools["Day {}".format(compare_day)][df_table_m_bools["Day {}".format(compare_day)] != "NC"].astype('bool')
             if motility_bool:
-                fig, ax = plt.subplots()
+                fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
                 fig.suptitle("chi-square analysis of fraction inhibited with expectation from {} ug/mL".format(compare_to))
                 fig.patch.set_visible(False)
-                ax.axis('off')
-                ax.axis('tight')
-                ax.table(cellText=df_table_i.values, colLabels=df_table_i.columns, rowLabels = df_table_i.index, cellLoc='center', loc='center')
+                for ax in [ax1, ax2]:
+                    ax.axis('off')
+                    ax.axis('tight')
+                ax1.set_title("p-value")
+                ax1.table(cellText=df_table_i.values, colLabels=df_table_i.columns, rowLabels = df_table_i.index, cellLoc='center', loc='center')
+                ax2.set_title('p-value' + r'$< 0.05$')
+                ax2.table(cellText=df_table_i_bools.values, colLabels=df_table_i.columns, rowLabels = df_table_i.index, cellLoc='center', loc='center')
                 fig.tight_layout()
                 fig.savefig("pval_table_inhibition_expectation{}_{}_{}_{}.pdf".format(compare_to, self.drug, self.stage, self.strain))
                 plt.close(fig)
             if mortality_bool:
-                fig, ax = plt.subplots()
+                fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1)
                 fig.suptitle("chi-square analysis of fraction mortality with expectation from {} ug/mL".format(compare_to))
                 fig.patch.set_visible(False)
-                ax.axis('off')
-                ax.axis('tight')
-                ax.table(cellText=df_table_m.values, colLabels=df_table_m.columns, rowLabels = df_table_m.index, cellLoc='center', loc='center')
+                for ax in [ax1, ax2]:
+                    ax.axis('off')
+                    ax.axis('tight')
+                ax.set_title("p-value")
+                ax1.table(cellText=df_table_m.values, colLabels=df_table_m.columns, rowLabels = df_table_m.index, cellLoc='center', loc='center')
+                ax2.set_title('p-value' + r'$ < 0.05$')
+                ax2.table(cellText=df_table_m_bools.values, colLabels=df_table_i.columns, rowLabels = df_table_i.index, cellLoc='center', loc='center')
                 fig.tight_layout()
                 fig.savefig("pval_table_mortality_expectation{}_{}_{}_{}.pdf".format(compare_to, self.drug, self.stage, self.strain))
                 plt.close(fig)
