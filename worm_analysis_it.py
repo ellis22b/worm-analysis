@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import logging
 import worm_analysis_utils
 
-def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, drug, stage, strain, days_arr, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days'):
+def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, drug, stage, strain, days_arr, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days', no3 = False, inhibited_og = np.nan):
     for j, conc in enumerate(uniq_conc):
         fig, ax = plt.subplots()
 
@@ -18,10 +18,19 @@ def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, d
         title = r"\textbf{%s %s %s on %s %s}" %(conc, concUnits, drug, stage, strain) + r" $\textbf{$\textit{C. elegans}$}$"
         ax = worm_analysis_utils.format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, days_arr)
 
-        if plot_motility:
-            ax.plot(days_arr, inhibited[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
-        if plot_mortality:
-            ax.plot(days_arr, mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
+        if no3:
+            if plot_motility:
+                ax.plot(days_arr, inhibited_og[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
+                ax.plot(days_arr, inhibited[j], drawstyle='steps-post', color='dodgerblue', label = r'$\mathrm{no\;3\;Inhibited\;(nIT_{50})}$')
+            if plot_mortality:
+                ax.plot(days_arr, mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
+
+        else:
+            if plot_motility:
+                ax.plot(days_arr, inhibited[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
+            if plot_mortality:
+                ax.plot(days_arr, mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
+
 
         '''shrink and set legend'''
         box = ax.get_position()
@@ -35,7 +44,7 @@ def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, d
         logging.info('Plotted the figure {}'.format(new_figname))
 
 
-def findSurvivability(toPopulate, toAnalyze, rep_index, expName, nscore_insystem, consistent_num, num_concentrations, num_days, motility=False, mortality=False):
+def findSurvivability(toPopulate, toAnalyze, rep_index, expName, nscore_insystem, consistent_num, num_concentrations, num_days, motility=False, mortality=False, no3 = False):
     ''' at each step, only need to decide the number at risk - the number at risk is directly related to the percent survival
         Then correct so that it's monotonically decreasing like graphpad does but in this case with np.minimum.accumulate(a, axis=1)
         Finally, report the day where we cross 50% or U for undefined if we don't cross 50%'''
@@ -49,7 +58,10 @@ def findSurvivability(toPopulate, toAnalyze, rep_index, expName, nscore_insystem
     if motility:
         num_at_risk = toAnalyze_expSpec[:,nscore_insystem-1,:] #num at risk is only worms of highest score
         num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
-        logging_value = r'\textbf{IT50}'
+        if no3:
+            logging_value = r'\textbf{IT50 (no 3)}'
+        else:
+            logging_value = r'\textbf{IT50}'
     elif mortality:
         num_at_risk = np.sum(toAnalyze_expSpec[:,1:,:], axis=1) #num at risk is any worm of score 1 or greater
         num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)

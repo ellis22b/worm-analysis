@@ -5,6 +5,7 @@ worm analysis package utility functions
 '''
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 def find_scores(toAnalyze, ax1, num_days, num_experiments, nscores_insystem, motility = False, mortality = False):
     if motility:
@@ -171,7 +172,7 @@ def find_totalWorms_byday(scores_mat):
 def plot_wormnums(scores_by_well, expNames, num_days):
     welltotals_by_day = find_totalWorms_byday(scores_by_well)
     max_totals_by_exp = np.amax(welltotals_by_day, axis=(0, 1))
-    for exp_index in np.arange(length(expNames)):
+    for exp_index in np.arange(len(expNames)):
         fig, ax = plt.subplots(figsize=(10,10))
         for well_index in np.arange(welltotals_by_day.shape[0]):
             ax.plot(np.arange(num_days)+1, welltotals_by_day[well_index,:, exp_index], marker='o', c=np.random.rand(3,), label="well {}".format(well_index +1), clip_on=False)

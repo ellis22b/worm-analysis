@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
 import worm_analysis_utils
+import numpy as np
+import matplotlib.pyplot as plt
+import logging
 
 '''
 worm analysis package score line plot functions

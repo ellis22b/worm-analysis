@@ -36,7 +36,7 @@ def generate_sequences(PPM_params_byWell, number_to_generate_byWell, num_scores,
     sequences = np.full(PPM_params_byWell.shape[0], np.amax(number_to_generate_byWell), np.nan)
     # I think sequences is going to need a day aspect to it too
     to_gen_from = np.arange(0, num_scores+1, 1)
-    for
+    #for
 
 
 #def PPM_from_PCM(PCM_params, num_seq):
