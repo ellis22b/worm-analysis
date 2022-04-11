@@ -170,6 +170,7 @@ class WormAnalysis():
         self.conc50 = parser_args.conc50
         self.conc50Mot = parser_args.plotIC50
         self.conc50Mor = parser_args.plotLC50
+        self.runNo3 = parser_args.runNo3
 
         #curve fitting and plotting
         self.constrainNo3Hill, self.constrainMorHill, self.constrainMotHill = parser_args.constrainNo3Hill_bool, parser_args.constrainMorHill_bool,  parser_args.constrainMotHill_bool
@@ -447,14 +448,15 @@ class WormAnalysis():
         self.make_tables()
 
     def drive_no3analysis(self):
-        self.reset_to_no3_system()
-        logging.info('restarting the analyses with the no3 scoring system and new motility index score')
-        self.drive_linePlots(figname_base = "_no3_analysis")
-        self.drive_survivalTimePlots(figname_base = "_no3_analysis", no3=True)
-        self.drive_inhibitoryConcentrationPlots(figname_base = "_no3_analysis", no3=True)
-        ## drive stats
-        self.drive_tablereports(figname_base = '_no3_analysis')
-        self.reset_to_og_score_system()
+        if self.runNo3:
+            self.reset_to_no3_system()
+            logging.info('restarting the analyses with the no3 scoring system and new motility index score')
+            self.drive_linePlots(figname_base = "_no3_analysis")
+            self.drive_survivalTimePlots(figname_base = "_no3_analysis", no3=self.runNo3)
+            self.drive_inhibitoryConcentrationPlots(figname_base = "_no3_analysis", no3=self.runNo3)
+            ## drive stats
+            self.drive_tablereports(figname_base = '_no3_analysis')
+            self.reset_to_og_score_system()
 
     def run_analysis(self):
         if self.reportNum:

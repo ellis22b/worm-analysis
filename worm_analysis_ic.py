@@ -118,7 +118,6 @@ def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline
         curve_fit_hillslope = popt[3]
     else:
         curve_fit_hillslope = constrainedHill
-    print(curve_fit_hillslope)
     '''Using the Hill-Langmuir equation.'''
     fig = plt.figure(constrained_layout=False)
     widths = [1, 8]
