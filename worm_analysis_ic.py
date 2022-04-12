@@ -70,8 +70,9 @@ def evaluate_no_fit(top, bottom, ic50, highest_conc):
         no_fit = True
         logging.info('No fit possible since top and bottom are equal')
     if bottom > 50:
-        no_fit = True
-        logging.info('No fit possible since bottom is above 50%')
+        logging.warning('No desired fit possible since bottom is above 50%. Accept returned ic50 with caution')
+    if (top - bottom)  > 25 and (top - bottom) < 75:
+        logging.warning('Returned ic50 likely reflecting a 50% reduction (top - (top - bottom)*0.5), not crossing 50%. Accept returned ic50 with extreme caution. Consider looking at returnliteral50 arguments')
     if ic50 > highest_conc:
         no_fit = True
         logging.info('No fit possible since reported ic50 is higher than highest concentration assayed')
@@ -87,7 +88,7 @@ def find_spline(log_concs, averages, spline_k1, spline_k2):
     power_smooth_2 = spl_2(x_s_2)
     idx = np.argwhere(np.diff(np.sign(power_smooth_2 - 50))).flatten()
     if len(idx) > 0:
-        spline2_ic50 = np.power(10, x_s_2[idx])
+        spline2_ic50 = np.power(10, x_s_2[idx])[0]
     else:
         spline2_ic50 = r'\textgreater' + "{}".format(np.power(10, log_concs[-1]))
     return(x_s_1, power_smooth_1, x_s_2, power_smooth_2, spline2_ic50)
@@ -108,7 +109,7 @@ def dose_response_sigmoid(X, X_mid, hill, bottom, top):
     Y = (bottom+(top-bottom)/(1+np.exp(hill*(np.log(X)-np.log(X_mid)))))
     return Y
 
-def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline_k1, spline_k2, popt, constrainedHill = -1, use100_0 = False, useobserved = False, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100, fit_possible=True):
+def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline_k1, spline_k2, popt, constrainedHill = -1, use100_0 = False, useobserved = False, ylabel='\% Uninhibited', ysep=20, ymin=0, ymax=100, fit_possible=True, returnliteral50=False):
     curve_fit_top, curve_fit_bottom, curve_fit_ic50 = popt[0], popt[1], popt[2]
     if use100_0:
         curve_fit_top, curve_fit_bottom = 100, 0
@@ -155,6 +156,10 @@ def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline
         curve1e = dose_response_sigmoid(linspace_x1_antilog, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
         curve2e = dose_response_sigmoid(linspace_x2_antilog, curve_fit_ic50, curve_fit_hillslope, curve_fit_top, curve_fit_bottom)
 
+        if returnliteral50:
+            idx = np.argwhere(np.diff(np.sign(curve2e - 50))).flatten()
+            literal_ic50 = np.power(10, linspace_x2[idx])[0]
+
         e1 = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
         e2 = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
 
@@ -195,9 +200,14 @@ def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline
     logging.info('Plotted the figure {}'.format(figname))
 
     if not fit_possible:
+        logging.info('returned C50 value reflects where the spline fit crosses 50%')
         return(spline2_ic50)
     else:
-        return(np.nan)
+        if returnliteral50:
+            logging.info('returned C50 value reflects where the curve fit crosses 50%')
+            return(literal_ic50)
+        else:
+            return(np.nan)
 
 def set_to_log_value(df_tabled, C_day, bottom, ic50, highest_conc, lowest_nz_conc, motility = False, mortality = False, no3=False):
     if mortality:
@@ -205,8 +215,8 @@ def set_to_log_value(df_tabled, C_day, bottom, ic50, highest_conc, lowest_nz_con
         logging_value2 = 'LC50'
     if motility:
         if no3:
-            logging_value = r'\textbf{IC50 (no 3)}'
-            logging_value2 = 'IC50 (no 3)'
+            logging_value = r'$\mathrm{\textbf{IC50}\;(combined\;3\;\&\;2)}$'
+            logging_value2 = 'IC50 (combined 3 & 2)'
         else:
             logging_value = r'\textbf{IC50}'
             logging_value2 = 'IC50'

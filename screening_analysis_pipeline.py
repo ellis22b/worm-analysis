@@ -67,25 +67,25 @@ def generate_parser():
     ## stats
 
     ## repeating without 3 scores
-    parser.add_argument('--no_runNo3', action='store_false', dest='runNo3', help='add this argument to skip running additional analyses where the 3 & 2 scores are combined')
+    parser.add_argument('--no_runcombine3_2', action='store_false', dest='runNo3', help='add this argument to skip running additional analyses where the 3 & 2 scores are combined')
 
     ##constraining no3 IC parameters
     ###constraining no3 hill slope
-    parser.add_argument('--constrainNo3Hill', action='store_true', dest='constrainNo3Hill_bool', help='provide  if an only if you want to constrain the hill slope for motility scoring when re-analyzing without the 3 score (e.g., 2-1-0 scoring) and then use the --no3Hill argument to provide the constrained Hill value')
-    parser.add_argument('--no3Hill', action='store', dest='no3Hill', type=float, default=np.nan, required = False, help='the constant/constrained hill value that will be used rather than curve fitting attempting to optimize; required use when there are fewer than 3 experiments for a given drug/strain/stage treatment combo')
-    parser.add_argument('--no3notDefHill', action='store', dest='no3notDefHill', type=float, default=np.nan, required = False, help='not default Hill slope initial guess parameter for IC50 analysis with no3 scoring.')
+    parser.add_argument('--constrain_combine32Hill', action='store_true', dest='constrainNo3Hill_bool', help='provide  if an only if you want to constrain the hill slope for motility scoring when re-analyzing without the 3 score (e.g., 2-1-0 scoring) and then use the --no3Hill argument to provide the constrained Hill value')
+    parser.add_argument('--combine32Hill', action='store', dest='no3Hill', type=float, default=np.nan, required = False, help='the constant/constrained hill value that will be used rather than curve fitting attempting to optimize; required use when there are fewer than 3 experiments for a given drug/strain/stage treatment combo')
+    parser.add_argument('--combine32notDefHill', action='store', dest='no3notDefHill', type=float, default=np.nan, required = False, help='not default Hill slope initial guess parameter for IC50 analysis with no3 scoring.')
     ###constraining no3 top or bottom value
-    parser.add_argument('--no3notDefTop', action='store', dest='no3notDefTop', type=float, default=np.nan, required=False, help='not default Top initial guess parameter for IC50 analysis with no3 scoring. Default is the observed value in the dataset')
-    parser.add_argument('--no3notDefBottom', action='store', dest='no3notDefBottom', type=float, default=np.nan, required=False, help='not default Bottom initial guess parameter for IC50 analysis with no3 scoring. Default is the observed value in the dataset')
-    parser.add_argument('--plotno3TopBottom', action='store_true', dest='plotno3TopBottom', help='use this flag if you want to plot with the true/observed top value rather than the fit top for no3 mortality scoring')
-    parser.add_argument('--plotno3HundredZero', action='store_true', dest='plotno3HundredZero', help='use this flag if you want to plot with a top of 100 and a bottom of 0 no matter the true/observed top/bottom values or the curve fit values for no3 mortality scoring; do not use this flag with --plotno3TopBottom')
+    parser.add_argument('--combine32notDefTop', action='store', dest='no3notDefTop', type=float, default=np.nan, required=False, help='not default Top initial guess parameter for IC50 analysis with no3 scoring. Default is the observed value in the dataset')
+    parser.add_argument('--combine32notDefBottom', action='store', dest='no3notDefBottom', type=float, default=np.nan, required=False, help='not default Bottom initial guess parameter for IC50 analysis with no3 scoring. Default is the observed value in the dataset')
+    parser.add_argument('--plotcombine32TopBottom', action='store_true', dest='plotno3TopBottom', help='use this flag if you want to plot with the true/observed top value rather than the fit top for no3 mortality scoring')
+    parser.add_argument('--plotcombine32HundredZero', action='store_true', dest='plotno3HundredZero', help='use this flag if you want to plot with a top of 100 and a bottom of 0 no matter the true/observed top/bottom values or the curve fit values for no3 mortality scoring; do not use this flag with --plotno3TopBottom')
 
     ###guess no3 ic50
-    parser.add_argument('--no3notDefic50', action='store', dest='no3notDefic50', type=float, default=np.nan, required=False, help='not default ic50 initial guess parameter for IC50 analysis with no3 scoring.')
+    parser.add_argument('--combine32notDefic50', action='store', dest='no3notDefic50', type=float, default=np.nan, required=False, help='not default ic50 initial guess parameter for IC50 analysis with no3 scoring.')
 
     ## spline orders if no fit is possible.
-    parser.add_argument('--no3spline_k1', action='store', dest='no3spline_k1', type=int, default=1, required=False, help='the order of the first part (small concentration) of the spline smoothing if there is no IC50 fit for the no3 analysis')
-    parser.add_argument('--no3spline_k2', action='store', dest='no3spline_k2', type=int, default=1, required=False, help='the order of the second part (rest of concentrations) of the spline smoothing if there is no IC50 fit for the no3 analysis')
+    parser.add_argument('--combine32spline_k1', action='store', dest='no3spline_k1', type=int, default=1, required=False, help='the order of the first part (small concentration) of the spline smoothing if there is no IC50 fit for the no3 analysis')
+    parser.add_argument('--combine32spline_k2', action='store', dest='no3spline_k2', type=int, default=1, required=False, help='the order of the second part (rest of concentrations) of the spline smoothing if there is no IC50 fit for the no3 analysis')
 
     #arguments specific to LT/IT50 analyses
     parser.add_argument('--representative', action='store', dest='representative', type=int, default=0, help='which number (specifying order/location) of the input files (1, 2, or 3, etc - based on indexing from 1) that is the representative to be used for I/LT50')
@@ -93,6 +93,10 @@ def generate_parser():
     #arguments specific to LC/IC50 analyses
     parser.add_argument('--C_day', action='store', dest='C_day', type=int, default=4, help='the day (index from 1) to assess for inhibitory and/or lethal concentration')
     parser.add_argument('--x0_value', action='store', dest='x0_val', type=float, default=1e-6, help='value to replace the x=0 [] with when transforming x')
+    parser.add_argument('--motReturnliteral50', action='store_true', dest='motreturnliteral50', help='use this flag to correct the motility ic50 reporting if your ic50 fit reports the 50% decrease from top to bottom but not where the line crosses 50%')
+    parser.add_argument('--morReturnliteral50', action='store_true', dest='morreturnliteral50', help='use this flag to correct the mortality lc50 reporting if your ic50 fit reports the 50% decrease from top to bottom but not where the line crosses 50%')
+    parser.add_argument('--combine32Returnliteral50', action='store_true', dest='combine32returnliteral50', help='use this flag to correct the motility ic50 (2-1-0 scoring) reporting if your ic50 fit reports the 50% decrease from top to bottom but not where the line crosses 50%')
+
     ##constraining parameters
     ###constraining hill slope
     parser.add_argument('--constrainMotHill', action='store_true', dest='constrainMotHill_bool', help='provide if and only if you want to constrain the hill slope for motility scoring (e.g., 3-2-1-0 scoring) and then use the --motHill argument to provide the constrained Hill Value')
@@ -128,7 +132,13 @@ def generate_parser():
     parser.add_argument('--random_seed', action='store', dest='random_seed', type=int, default=73)
 
     #arguments specific to stats analyses
-
+    parser.add_argument('--stats_compare_to_control', action='store_true', dest='stats_compare_to_control', help='use this flag if and only if you want to run chi square comparisons to control; use --stats_concs and --stats_days to specify what days and concentrations are compared specifically; and make sure to include at least one or both of --stats_motility or --stats_mortality')
+    parser.add_argument('--stats_make_every_possible_comparison', action='store_true', dest='stats_make_every_possible_comparison', help = 'use this flag if and only if you want to make every possible comparison in the chi-square analysis. Note this is NOT recommended as it increases the testing burden to reach significance due to multiple hypothesis testing correction')
+    parser.add_argument('--stats_compare_to', action='store', nargs='+', dest='stats_compare_to', default=[0], help='all of the concentration indices you want to be the expecation/compared to. The default is just the lowest/control concentration. Add an integer for each additional comparison (e.g., --stats_compare_to 1 2 will also make comparisons with the 0.1 and 1 concentrations as the expectations); ignored if --stats_make_every_possible_comparison is provided')
+    parser.add_argument('--stats_days', action='store', nargs='+', type=int, dest='stats_days', default=[1,4,7], help='which days to make the comparisons; ignored if --stats_make_every_possible_comparison is provided')
+    parser.add_argument('--stats_concs', action='store', nargs='+', type=int, dest='stats_concs', default=[-1], help='the concentrations which will be compared to the expectation concentration. Default is the highest concentration; ignored if --stats_make_every_possible_comparison is provided. ')
+    parser.add_argument('--stats_mortality', action='store_true', help='include if and only if you have included --stats_compare_to_control and want to test the differences in mortality; ignored if --stats_make_every_possible_comparison is provided')
+    parser.add_argument('--stats_motility', action='store_true', help='include if and only if you have included --stats_compare_to_control and want to test the differences in motility, specifically inhibition profile (not highest score); ignored if --stats_make_every_possible_comparison is provided')
     return (parser)
 
 def main():
@@ -154,6 +164,9 @@ class WormAnalysis():
         #data of interest
         self.C_day = parser_args.C_day
         self.x0_value = parser_args.x0_val
+        self.motreturnliteral50 = parser_args.motreturnliteral50
+        self.morreturnliteral50 = parser_args.morreturnliteral50
+        self.combine32returnliteral50 = parser_args.combine32returnliteral50
         self.representative = parser_args.representative
         self.num_replicates = parser_args.num_replicates
         self.nscore_insystem = 4
@@ -373,9 +386,9 @@ class WormAnalysis():
                     logging.info("Returned fit for no3 Motility (2-1-0) scoring (top, bottom, ic50, hill (if number of experiments >3)): {}".format(popt))
                     nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                     #plot curve fit
-                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.no3spline_k1, self.no3spline_k2, popt, constrainedHill = self.no3Hill, use100_0=self.plotno3HundredZero, useobserved=self.plotno3TopBottom_bool, fit_possible = not nofit_bool)
+                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.no3spline_k1, self.no3spline_k2, popt, constrainedHill = self.no3Hill, use100_0=self.plotno3HundredZero, useobserved=self.plotno3TopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.combine32returnliteral50)
                     #record value in table
-                    if nofit_bool:
+                    if nofit_bool or self.combine32returnliteral50:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mot_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True, no3=no3)
                     else:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], popt[2], np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True, no3=no3)
@@ -391,9 +404,9 @@ class WormAnalysis():
                     logging.info("Returned fit for Motility (3-2-1-0) scoring (top, bottom, ic50, hill (if number of experiments >3)): {}".format(popt))
                     nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                     #plot curve fit
-                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.motspline_k1, self.motspline_k2, popt, constrainedHill = self.motHill, use100_0=self.plotMotHundredZero, useobserved=self.plotMotTopBottom_bool, fit_possible = not nofit_bool)
+                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.motspline_k1, self.motspline_k2, popt, constrainedHill = self.motHill, use100_0=self.plotMotHundredZero, useobserved=self.plotMotTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.motreturnliteral50)
                     #record value in table
-                    if nofit_bool:
+                    if nofit_bool or self.motreturnliteral50:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mot_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True)
                     else:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], popt[2], np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True)
@@ -408,9 +421,9 @@ class WormAnalysis():
                 logging.info("Returned fit for Mortality (1-0) scoring (top, bottom, lc50, hill (if number of experiments >3)): {}".format(popt))
                 nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                 #plot curve fit
-                mor_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMor, semMor, self.uniq_conc, self.x0_value, self.concUnits, self.morspline_k1, self.morspline_k2, popt, constrainedHill = self.morHill, use100_0=self.plotMorHundredZero, useobserved=self.plotMorTopBottom_bool, fit_possible = not nofit_bool)
+                mor_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMor, semMor, self.uniq_conc, self.x0_value, self.concUnits, self.morspline_k1, self.morspline_k2, popt, constrainedHill = self.morHill, use100_0=self.plotMorHundredZero, useobserved=self.plotMorTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.morreturnliteral50)
                 #record value in table
-                if nofit_bool:
+                if nofit_bool or self.morreturnliteral50:
                     self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mor_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], mortality=True)
                 else:
                     self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], popt[2], np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], mortality=True)
@@ -434,8 +447,40 @@ class WormAnalysis():
         self.oglinePlotsMor, self.ogtime50Mor, self.ogconc50Mor = self.linePlotsMor, self.time50Mor, self.conc50Mor
         self.linePlotsMor, self.conc50Mor = False, False
 
-        self.df_tabled[r'\textbf{IC50 (no 3)}'] = np.tile('NC', self.df_tabled.shape[0])
+        self.df_tabled[r'$\mathrm{\textbf{IC50}\;(combined\;3\;\&\;2)}$'] = np.tile('NC', self.df_tabled.shape[0])
         #self.make_tables()
+
+    def driveStats(self):
+        if self.stats_compare_to_control:
+            pval_dfs = {}
+            if self.stats_make_every_possible_comparison:
+                for conc in self.uniq_conc:
+                    compare_to_index = self.conc_to_index[conc]
+                    compare_with_concs = self.uniq_conc[self.uniq_conc != conc]
+                    df_table_i, df_table_m = pd.DataFrame(index=compare_with_concs), pd.DataFrame(index=compare_with_concs)
+                    for df in [df_table_i, df_table_m]:
+                        df.index.name = "Concentration ({})".format(self.concUnits)
+                    for compare_to_day in np.arange(1, self.num_days + 1):
+                        pvals_i = np.array([])
+                        pvals_m = np.array([])
+                        expected_inh = worm_analysis_stats.make_inh_arr(self.scores3_by_conc, compare_to_index, compare_to_day-1, self.nscore_insystem)
+                        expected_mor = worm_analysis_stats.make_mor_arr(self.scores3_by_conc, compare_to_index, compare_to_day-1)
+                        for compare_with_conc in compare_with_concs:
+                            compare_with_conc_index = self.conc_to_index[compare_with_conc]
+                            compare_with_inh = worm_analysis_stats.make_inh_arr(self.scores3_by_conc, compare_with_conc_index, compare_to_day-1, self.nscore_insystem)
+                            compare_with_mor = worm_analysis_stats.make_mor_arr(self.scores3_by_conc, compare_with_conc_index, compare_to_day-1)
+                            raw_pval_inh = worm_analysis_stats.chisquare_it(compare_with_inh, expected_inh)
+                            raw_pval_mor = worm_analysis_stats.chisquare_it(compare_with_mor, expected_mor)
+                            pvals_i = np.hstack((pvals_i, raw_pval_inh))
+                            pvals_m = np.hstack((pvals_m, raw_pval_mor))
+                        df_table_i["Day {}".format(compare_to_day)] = pvals_i
+                        df_table_m["Day {}".format(compare_to_day)] = pvals_m
+                    pval_dfs[conc] = {"inh": df_table_i, "mor": df_table_m}
+                pval_dfs, num_tests = worm_analysis_stats.multiple_hypothesis_testing_correction(df_dict)
+            else:
+                #what about specified testing only?
+                filler = 0
+        plot_it() #need to make this function
 
     def reset_to_og_score_system(self):
         self.nscore_insystem = 4
@@ -450,12 +495,12 @@ class WormAnalysis():
     def drive_no3analysis(self):
         if self.runNo3:
             self.reset_to_no3_system()
-            logging.info('restarting the analyses with the no3 scoring system and new motility index score')
-            self.drive_linePlots(figname_base = "_no3_analysis")
-            self.drive_survivalTimePlots(figname_base = "_no3_analysis", no3=self.runNo3)
-            self.drive_inhibitoryConcentrationPlots(figname_base = "_no3_analysis", no3=self.runNo3)
+            logging.info('restarting the analyses with the combine 3-2 scoring system and new motility index score')
+            self.drive_linePlots(figname_base = "_combine3-2_analysis")
+            self.drive_survivalTimePlots(figname_base = "_combine3-2_analysis", no3=self.runNo3)
+            self.drive_inhibitoryConcentrationPlots(figname_base = "_combine3-2_analysis", no3=self.runNo3)
             ## drive stats
-            self.drive_tablereports(figname_base = '_no3_analysis')
+            self.drive_tablereports(figname_base = '_combine3-2_analysis')
             self.reset_to_og_score_system()
 
     def run_analysis(self):

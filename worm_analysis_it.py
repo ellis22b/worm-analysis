@@ -21,7 +21,7 @@ def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, d
         if no3:
             if plot_motility:
                 ax.plot(days_arr, inhibited_og[j], drawstyle = 'steps-post', color = 'orangered', label = r'$\mathrm{Inhibited\;(IT_{50})}$')
-                ax.plot(days_arr, inhibited[j], drawstyle='steps-post', color='dodgerblue', label = r'$\mathrm{no\;3\;Inhibited\;(nIT_{50})}$')
+                ax.plot(days_arr, inhibited[j], drawstyle='steps-post', color='dodgerblue', label = r'$\mathrm{combined\;3\;\&\;2\;Inhibited\;(IT_{50})}$')
             if plot_mortality:
                 ax.plot(days_arr, mortality[j], drawstyle = 'steps-post', color = 'darkviolet', label = r'$\mathrm{Dead-Alive\;(LT_{50})}$')
 
@@ -36,10 +36,11 @@ def plotSurvivalTime(inhibited, mortality, figname_base, uniq_conc, concUnits, d
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.7, box.height*0.65])
         handles, labels = ax.get_legend_handles_labels()
-        ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.94), fontsize=9)
+        lgd = ax.legend(handles[::-1], labels[::-1], loc='center left', bbox_to_anchor=(1, 0.94), fontsize=9)
 
         new_figname = figname_base.format(conc)
-        fig.savefig(new_figname)
+        plt.tight_layout()
+        fig.savefig(new_figname, bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.close(fig)
         logging.info('Plotted the figure {}'.format(new_figname))
 
@@ -59,7 +60,7 @@ def findSurvivability(toPopulate, toAnalyze, rep_index, expName, nscore_insystem
         num_at_risk = toAnalyze_expSpec[:,nscore_insystem-1,:] #num at risk is only worms of highest score
         num_at_risk_corrected = np.minimum.accumulate(num_at_risk, axis=1)
         if no3:
-            logging_value = r'\textbf{IT50 (no 3)}'
+            logging_value = r'$\mathrm{\textbf{IT50}\;(combined\;3\;\&\;2)}$'
         else:
             logging_value = r'\textbf{IT50}'
     elif mortality:
