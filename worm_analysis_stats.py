@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import chisquare
 import pandas as pd
+import logging
 
 def find_num_inhibited(vec_of_scores, nscore_insystem):
     return(np.sum(vec_of_scores[0:nscore_insystem-1]))
@@ -51,12 +52,16 @@ def compute_num_tests(pval_dfs_dict):
 
 def multiple_hypothesis_testing_correction(pval_dfs_dict):
     num_tests, pval_dict = compute_num_tests(pval_dfs)
-    for conc_key in pval_dict:
-        for test_type in ['inh', 'mor']
-            if test_type in pval_dict[conc_key]:
-                pval_df = pval_dict[conc_key][test_type]
-                pval_df_bool = pval_df < (0.05 / num_tests)
-                pval_df_adjpval = pval_df * num_tests
-                pval_dict[conc_key][test_type]['adj.p.val'] = pval_df_adjpval
-                pval_dict[conc_key][test_type]['bool.sig'] = pval_df_bool
+    if num_tests >= 20:
+        logging.info('Multiple hypothesis testing correction (Bonferroni) will be performed because there were {} hypothesis tests total'.format(num_tests))
+        for conc_key in pval_dict:
+            for test_type in ['inh', 'mor']:
+                if test_type in pval_dict[conc_key]:
+                    pval_df = pval_dict[conc_key][test_type]
+                    pval_df_bool = pval_df < (0.05 / num_tests)
+                    pval_df_adjpval = pval_df * num_tests
+                    pval_dict[conc_key][test_type]['adj.p.val'] = pval_df_adjpval
+                    pval_dict[conc_key][test_type]['bool.sig'] = pval_df_bool
+    else:
+        logging.info('No multiple hypothesis testing correction performed because there were fewer than 20 hypothesis tests')
     return(pval_dict, num_tests)

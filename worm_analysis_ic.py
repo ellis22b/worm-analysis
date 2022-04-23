@@ -60,8 +60,8 @@ def set_guess_params(num_exp, observed_averages, notdefhill, notdeftop, notdefbo
         return {'P0': default_guesses,
                 'P0_top': default_guesses[0],
                 'P0_bottom': default_guesses[1],
-                'P0_hill': default_guesses[2],
-                'P0_ic50': default_guesses[3]}
+                'P0_ic50': default_guesses[2],
+                'P0_hill': default_guesses[3]}
 
 
 def evaluate_no_fit(top, bottom, ic50, highest_conc):
