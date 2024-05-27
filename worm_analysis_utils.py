@@ -131,6 +131,7 @@ def format_plots(ax, title, xlabel, ylabel, ymin, ymax, ysep, xticks, format_x =
     ax.spines["top"].set_visible(False)
 
     '''set title and axis labels'''
+    #plt.title(title, fontsize=12)
     ax.set_title(title, fontsize=12)
     ax.set_xlabel(r'\textbf{%s}' %xlabel, fontsize=10)
     ax.set_ylabel(r'\textbf{%s}' %ylabel, fontsize=10)
@@ -176,7 +177,8 @@ def plot_wormnums(scores_by_well, expNames, num_days):
         fig, ax = plt.subplots(figsize=(10,10))
         for well_index in np.arange(welltotals_by_day.shape[0]):
             ax.plot(np.arange(num_days)+1, welltotals_by_day[well_index,:, exp_index], marker='o', c=np.random.rand(3,), label="well {}".format(well_index +1), clip_on=False)
-        ax.set_title("Change in worm numbers by well for experiment {}".format(expNames[exp_index]))
+        #plt.title(expNames[exp_index])
+        ax.set_title('Change in worm numbers by well for experiment {}'.format(expNames[exp_index]))
         ax.set_ylim(0, max_totals_by_exp[exp_index])
         ax.set_yticks(np.arange(0, max_totals_by_exp[exp_index], 5))
         ax.set_yticklabels(np.arange(0, max_totals_by_exp[exp_index], 5))
@@ -185,6 +187,6 @@ def plot_wormnums(scores_by_well, expNames, num_days):
         ax.set_xticks(np.arange(num_days)+1)
         ax.set_xticklabels(np.arange(num_days)+1)
         ax.legend(bbox_to_anchor=[0.99, 0.5], loc='center left', ncol=2)
-        plt.tight_layout()
+        #plt.tight_layout()
         fig.savefig("well_num_worms_by_day_{}.png".format(expNames[exp_index]))
         plt.close(fig)

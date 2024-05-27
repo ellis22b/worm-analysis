@@ -25,11 +25,11 @@ params = {'font.sans-serif': 'Helvetica',
           'font.weight': 'bold',
           'legend.frameon': False,
           'legend.labelspacing': 1,
-          "text.usetex": True,
+          'text.usetex': True,
           'text.latex.preamble': [r'\usepackage{siunitx}',
-                           r'\sisetup{detect-all}',
-                           r'\usepackage{sansmath}',
-                           r'\sansmath']}
+                                  r'\sisetup{detect-all}',
+                                  r'\usepackage{sansmath}',
+                                  r'\sansmath']}
 rcParams.update(params)
 
 def main():
@@ -41,7 +41,7 @@ def main():
     if args.runNo3:
         logging.info('now beginning the analysis where scores 2&3 are combined.')
         analysis_instance_no3 = WormAnalysis_no3(analysis_instance_main.consistent_num, analysis_instance_main.drug, analysis_instance_main.strain, analysis_instance_main.stage, analysis_instance_main.uniq_conc, analysis_instance_main.concUnits, analysis_instance_main.concUnits_dict, analysis_instance_main.conc_index, analysis_instance_main.well_index_to_conc, analysis_instance_main.conc_colors_lo_to_hi, analysis_instance_main.conc_markers_lo_to_hi, analysis_instance_main.conc_marker_outline_lo_to_hi, analysis_instance_main.C_day, analysis_instance_main.x0_val, analysis_instance_main.mM, analysis_instance_main.num_days, analysis_instance_main.num_experiments, analysis_instance_main.num_concentrations, analysis_instance_main.scores3_by_well, analysis_instance_main.scores3_by_conc)
-        analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val, args.hill2, args.spline_k1, args.spline_k2)
+        analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val, args.hill2, args.constrain2Hill_bool, args.spline_k1, args.spline_k2)
 
 
     if not analysis_instance_main.consistent_num:
@@ -57,7 +57,7 @@ def main():
         if args.runNo3: #want to fix the figname base -- do this
             logging.info('now beginning the analysis where scores 2&3 are combined.')
             analysis_instance_no3 = WormAnalysis_no3(analysis_instance_main.consistent_num, analysis_instance_main.drug, analysis_instance_main.strain, analysis_instance_main.stage, analysis_instance_main.uniq_conc, analysis_instance_main.concUnits, analysis_instance_main.concUnits_dict, analysis_instance_main.conc_index, analysis_instance_main.well_index_to_conc, analysis_instance_main.conc_colors_lo_to_hi, analysis_instance_main.conc_markers_lo_to_hi, analysis_instance_main.conc_marker_outline_lo_to_hi, analysis_instance_main.C_day, analysis_instance_main.x0_val, analysis_instance_main.mM, analysis_instance_main.num_days, analysis_instance_main.num_experiments, analysis_instance_main.num_concentrations, analysis_instance_main.scores3_by_well, analysis_instance_main.scores3_by_conc)
-            analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val, args.hill2, args.spline_k1, args.spline_k2)
+            analysis_instance_no3.run(args.plotLine3, args.plotIT50, args.plotIC50, args.isep, args.expNames, args.rep, args.C_day, args.x0_val, args.hill2, args.constrain2Hill_bool, args.spline_k1, args.spline_k2)
 
 
 
@@ -68,9 +68,9 @@ def analysis_structure(args, analysis_instance, figname_base=''):
         analysis_instance.driveSurvivalTimePlots(args.plotIT50, args.plotLT50, args.rep, args.expNames, figname_base=figname_base)
     if args.plotIC50 or args.plotLC50:
         if args.notDefaultC50:
-            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.notDefHill1, args.notDefHill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, default=False, not_default_3 = {'top':args.notDefTop3,'bottom':args.notDefBot3,'ic50':args.notDefic50,'hill':args.notDefHill3}, not_default_1 = {'top':args.notDefTop1,'bottom':args.notDefBot1,'ic50':args.notDeflc50,'hill':args.notDefHill1}, figname_base=figname_base)
+            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.notDefHill1, args.notDefHill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, args.constrain3Hill_bool, args.constrain1Hill_bool, default=False, not_default_3 = {'top':args.notDefTop3,'bottom':args.notDefBot3,'ic50':args.notDefic50,'hill':args.notDefHill3}, not_default_1 = {'top':args.notDefTop1,'bottom':args.notDefBot1,'ic50':args.notDeflc50,'hill':args.notDefHill1}, figname_base=figname_base)
         else:
-            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, figname_base=figname_base)
+            analysis_instance.driveIC(args.plotIC50, args.plotLC50, args.C_day, args.x0_val, args.hill1, args.hill3, args.spline_k1, args.spline_k2, args.fitTopPlot_bool, args.constrain3Hill_bool, args.constrain1Hill_bool, figname_base=figname_base)
     if args.stats_compare_to_control:
         try:
             assert args.stats_inhibited or args.stats_mortality
@@ -105,6 +105,9 @@ def generate_parser():
     parser.add_argument('--constrain1Hill', action='store', dest='hill1', type=float, default=-0.15, required=False, help='the constant/constrained Hill Slope for 1-0 scoring to be used when fewer than 3 replicates are provided')
     parser.add_argument('--constrain3Hill', action='store', dest='hill3', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 3-2-1-0 scoring to be used when fewer than 3 replicates are provided')
     parser.add_argument('--constrain2Hill', action='store', dest='hill2', type=float, default=-1.5, required=False, help='the constant/constrained Hill Slope for 2-1-0 scoring to be used when fewer than 3 replicates are provided')
+    parser.add_argument('--constrain3Hill_bool', action='store_true', dest='constrain3Hill_bool', help='provide if and only if you want to constrain the hill slope for 3-2-1-0 scoring and then use the --constrain3Hill argument')
+    parser.add_argument('--constrain2Hill_bool', action='store_true', dest='constrain2Hill_bool', help='provide if and only if you want to constrain the hill slope for 2-1-0 scoring and then use the --constrain2Hill argument')
+    parser.add_argument('--constrain1Hill_bool', action='store_true', dest='constrain1Hill_bool', help='provide if and only if you want to constrain the hill slope for 1-0 scoring and then use the --constrain1Hill argument')
     parser.add_argument('--spline_k1', action='store', dest='spline_k1', type=int, default=3, required=False, help='the order of the first part of the spline smoothing if there is no _c50 fit')
     parser.add_argument('--spline_k2', action='store', dest='spline_k2', type=int, default=3, required=False, help='the order of the second part of the spline smoothing if there is no _c50 fit')
     parser.add_argument('--no_runNo3', action='store_false', dest='runNo3', help='add this argument to skip running additional analyses where the 3 & 2 scores are combined')
@@ -118,12 +121,13 @@ def generate_parser():
     parser.add_argument('--notDefHill3', action='store', dest='notDefHill3', type=float, default=-1, help='not default Hill Slope initial parameter for IC50. Only provide if notDefaultC50 is also provided as True')
     parser.add_argument('--notDefHill1', action='store', dest='notDefHill1', type=float, default=-1, help='not default Hill Slope initial parameter for LC50. Only provide if notDefaultC50 is also provided as True')
     parser.add_argument('--no_use_fitTop', action='store_false', dest='fitTopPlot_bool', help='use this flag if you want to plot with the 100/0 top/bottom instead of the fit top/bottom')
+
     parser.add_argument('--stats_compare_to_control', action='store_true', dest='stats_compare_to_control', help='use this flag if and only if you want to run chi square comparison to control; use --stats_concs and --stats_days to control what is compared and make sure to include at least one of --stats_mortality or --stats_inhibited')
     parser.add_argument('--stats_compare_to', action='store', nargs='+', dest='stats_compare_to', default=[0], help='all of the concentration indexes you want to be the expecation/compared to. 0 is 0 ug/mL. 1 is next highest concentration, etc.')
     parser.add_argument('--stats_days', action='store', nargs='+', type=int, default=[1,4,7], help='which days to compare the stats_concs to control')
     parser.add_argument('--stats_mortality', action='store_true', help='include if and only if you have included --stats_compare_to_control and want to test the difference in mortality')
     parser.add_argument('--stats_inhibited', action='store_true', help='include if and only if you have included --stats_compare_to_control and want to test the difference in number inhibited')
-    parser.add_argument('--random_seed', action='store', dest='random_seed', type=int, default=42)
+    #parser.add_argument('--random_seed', action='store', dest='random_seed', type=int, default=42)
     return parser
 
 class WormAnalysis():
@@ -775,6 +779,8 @@ class WormAnalysis():
         x_s_2 = np.linspace(log_concs[1], log_conc_ticks[-1], 300)
         spl_2 = make_interp_spline(log_concs[1:], averages[1:], k=spline_k2)
         power_smooth_2 = spl_2(x_s_2)
+        idx = np.argwhere(np.diff(np.sign(power_smooth_2 - 50))).flatten()
+        print(np.power(10, x_s_2[idx]), flush=True)
         s = ax2.scatter(log_conc_ticks[1:], averages[1:], c='black')
         ax2.plot(x_s_2, power_smooth_2, c='black', clip_on=False)
 
@@ -792,7 +798,7 @@ class WormAnalysis():
         plt.close(fig)
         logging.info('Plotted the figure {}'.format(figname))
 
-    def driveIC(self, plotIC50, plotLC50, C_day, x0_val, hill1, hill3, spline_k1, spline_k2, fitTopPlot_bool, default=True, not_default_3 = {}, not_default_1 = {}, figname_base=''):
+    def driveIC(self, plotIC50, plotLC50, C_day, x0_val, hill1, hill3, spline_k1, spline_k2, fitTopPlot_bool, hill3bool, hill1bool, default=True, not_default_3 = {}, not_default_1 = {}, figname_base=''):
         #Look at each well self.scores3_by_well
         #recall self.scores3_by_well = np.zeros((self.num_concentrations*3, 4, self.num_days, self.num_experiments))
         #Use these to go from well to conc etc
@@ -820,10 +826,13 @@ class WormAnalysis():
 
         conc_X = np.tile(np.array([self.well_index_to_conc[x] for x in np.arange(self.num_concentrations*3)]).reshape(-1, 1), (1, self.num_experiments))
 
-        if self.num_experiments >= 3 and default:
+        if self.num_experiments >= 3 and default and not hill3bool:
             param_dict = self.set_guess_params(avg1, avg3, hill1, hill3)
 
-        elif self.num_experiments < 3 and default:
+        elif self.num_experiments >= 3 and default and hill3bool:
+            param_dict = self.set_guess_params(avg1, avg3, hill1, hill3, num_exper='l3')
+
+        elif self.num_experiments < 3 and default and not hill3bool:
             param_dict = self.set_guess_params(avg1, avg3, hill1, hill3, num_exper='l3')
 
         elif self.num_experiments >= 3 and not default:
@@ -846,7 +855,7 @@ class WormAnalysis():
         lowest_nz_conc = np.sort(self.uniq_conc)[1]
         highest_conc = np.amax(self.uniq_conc)
 
-        if self.num_experiments >=3:
+        if self.num_experiments >=3 and not hill3bool:
             if plotLC50:
                 logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 1-0 scoring using a max number of function evaluations of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(int(1e6), P0_10_top, P0_10_bottom, P0_10_ic50, P0_10_hill))
                 popt, popc = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited1.flatten(), p0=P0_10, method='lm', maxfev=int(1e6))

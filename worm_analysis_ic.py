@@ -13,7 +13,6 @@ import logging
 
 def find_avg_sem(scores_by_well, C_day, nscores_insystem, num_concentrations, num_replicates, num_experiments, conc_to_index, well_index_to_conc, mortality = False, motility = False):
     totals = np.sum(scores_by_well[:,:,C_day-1,:], axis=1)
-
     if motility:
         uninhibited = scores_by_well[:,nscores_insystem-1,C_day-1,:]/totals*100
     if mortality:
@@ -90,7 +89,9 @@ def find_spline(log_concs, averages, spline_k1, spline_k2):
     if len(idx) > 0:
         spline2_ic50 = np.power(10, x_s_2[idx])[0]
     else:
-        spline2_ic50 = r'\textgreater' + "{}".format(np.power(10, log_concs[-1]))
+        #force to be np.nan so that later `set_to_log_value` will make it the \textgreater highest conc
+        spline2_ic50 = np.nan
+        #spline2_ic50 = r'\textgreater' + "{}".format(np.power(10, log_concs[-1]))
     return(x_s_1, power_smooth_1, x_s_2, power_smooth_2, spline2_ic50)
 
 def transform_X(X, x0_val=1e-6):
@@ -158,7 +159,10 @@ def plotIC(title, figname, averages, sems, uniq_concs, x0_val, concUnits, spline
 
         if returnliteral50:
             idx = np.argwhere(np.diff(np.sign(curve2e - 50))).flatten()
-            literal_ic50 = np.power(10, linspace_x2[idx])[0]
+            if len(idx) > 0:
+                literal_ic50 = np.power(10, linspace_x2[idx])[0]
+            else:
+                literal_ic50 = np.nan
 
         e1 = ax1.errorbar(log_concs[0], averages[0], yerr=sems[0], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
         e2 = ax2.errorbar(log_concs[1:], averages[1:], yerr=sems[1:], linestyle='None', marker='o', color='black', capsize=5, clip_on=False)
@@ -221,7 +225,9 @@ def set_to_log_value(df_tabled, C_day, bottom, ic50, highest_conc, lowest_nz_con
             logging_value = r'\textbf{IC50}'
             logging_value2 = 'IC50'
     logging_day = r'\textbf{%s}' % str(C_day)
-    if isinstance(ic50, float):
+    if np.isnan(ic50):
+        to_log = r'\textgreater' + '{}'.format(highest_conc)
+    elif isinstance(ic50, float):
         to_log = '{0:.3f}'.format(ic50)
         if bottom > 50 or ic50 > highest_conc:
             to_log = r'\textgreater' + '{}'.format(highest_conc)

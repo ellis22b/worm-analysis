@@ -19,13 +19,13 @@ from scipy.optimize import curve_fit
 
 def setup_formatting():
     rc('axes', linewidth=2)
-    params = {'font.sans-serif': 'Helvetica',
-              'font.size': 12,
-              'font.weight': 'bold',
-              'legend.frameon': False,
-              'legend.labelspacing': 1,
-              "text.usetex": True,
-              'text.latex.preamble': [r'\usepackage{siunitx}',
+    params = {"text.usetex": True,
+              "font.sans-serif": 'Helvetica',
+              "font.size": 12,
+              "font.weight": 'bold',
+              "legend.frameon": False,
+              "legend.labelspacing": 1,
+              "text.latex.preamble": [r'\usepackage{siunitx}',
                                       r'\sisetup{detect-all}',
                                       r'\usepackage{sansmath}',
                                       r'\sansmath']}
@@ -51,6 +51,8 @@ def generate_parser():
     parser.add_argument('--noReportNum', action='store_false', dest='reportNum', help='add this argument to skip reporting the total number of worms in each concentration (summed across all input experiments), corresponding to Table 1 of the 2017 paper')
     ## line plots
     parser.add_argument('--include_single_exp_plots', action='store_true', dest='isep', help='when plotting the daily motility or lethalty response by concentration, add this argument to plot single experiments as well as the average')
+    parser.add_argument('--includeSEM', action='store_true', dest='isem', help='when plotting the daily motility or lethality response by concentration, add this argument to plot SEM bars')
+    parser.add_argument('--includeSTDEV', action='store_true', dest='istdev', help='when plotting the daily motility or lethality response by concentration, add this argument to plot STDEV bars')
     parser.add_argument('--noLinePlots', action='store_false', dest='linePlots', help='add this argument to skip plotting all line plots for mortality and motility')
     parser.add_argument('--noLinePlotMot', action='store_false', dest='linePlotsMot', help='add this argument to skip plotting motility line plots only')
     parser.add_argument('--noLinePlotMor', action='store_false', dest='linePlotsMor', help='add this argument to skip plotting mortality line plots only')
@@ -177,6 +179,8 @@ class WormAnalysis():
         self.linePlotsMot = parser_args.linePlotsMot
         self.linePlotsMor = parser_args.linePlotsMor
         self.include_single_exp_plots = parser_args.isep
+        self.include_sem = parser_args.isem
+        self.include_stdev = parser_args.istdev
         self.time50 = parser_args.time50
         self.time50Mot = parser_args.plotIT50
         self.time50Mor = parser_args.plotLT50
@@ -279,13 +283,13 @@ class WormAnalysis():
             if self.linePlotsMot:
                 if self.include_single_exp_plots:
                     for (i, exp) in enumerate(self.expNames):
-                        worm_analysis_scorelines.plotLineCurves(self.motility_index_scores_by_conc[:,:,i], 'isep_motility_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                        worm_analysis_scorelines.plotLineCurves(self.motility_index_scores_by_conc[:,:,i], 'isep_motility_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), self.expNames[i], "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
                 to_plot_mot = worm_analysis_scorelines.get_avg_across_exp(self.motility_index_scores_by_well, self.num_concentrations, self.num_replicates, self.num_experiments, self.num_days)
                 worm_analysis_scorelines.plotLineCurves(to_plot_mot,'average_motility_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
             if self.linePlotsMor:
                 if self.include_single_exp_plots:
                     for i, exp in enumerate(self.expNames):
-                        worm_analysis_scorelines.plotLineCurves(self.mortality_scores_by_conc[:,:,i], 'isep_mortality_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                        worm_analysis_scorelines.plotLineCurves(self.mortality_scores_by_conc[:,:,i], 'isep_mortality_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), exp, "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
                 to_plot_mor = worm_analysis_scorelines.get_avg_across_exp(self.mortality_scores_by_well, self.num_concentrations, self.num_replicates, self.num_experiments, self.num_days)
                 worm_analysis_scorelines.plotLineCurves(to_plot_mor,'average_mortality_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
 

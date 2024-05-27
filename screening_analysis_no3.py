@@ -46,7 +46,7 @@ class WormAnalysis_no3():
 		self.scores3_by_well = scores3_by_well
 		self.scores3_by_conc = scores3_by_conc
 
-	def run(self, plotLine3, plotIT50, plotIC50, isep, expNames, rep, C_day, x0_val, hill2, spline_k1, spline_k2, default=True, not_default_2={}):
+	def run(self, plotLine3, plotIT50, plotIC50, isep, expNames, rep, C_day, x0_val, hill2, constrain2Hill_bool, spline_k1, spline_k2, default=True, not_default_2={}):
 		self.transform_raw_to_no3()
 		logging.info('Transformed data by combining all scores of 2&3 for each day, concentration, and experiment')
 		self.motility_no3()
@@ -56,7 +56,7 @@ class WormAnalysis_no3():
 		if plotLine3:
 			if isep:
 				for i, exp in enumerate(expNames):
-					self.plotLineCurves(self.motility_index_scores_by_conc_no3[:, :, i], 'isep_motility_{}_{}_{}_{}_no3.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s on %s %s}" % (exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 2, 1)
+					self.plotLineCurves(self.motility_index_scores_by_conc_no3[:, :, i], 'isep_motility_{}_{}_{}_{}_no3.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" % (exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 2, 1)
 			reshaped_mid_by_well = self.motility_index_scores_by_well_no3.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
 			motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
 			for j in range(self.num_experiments):
@@ -97,8 +97,11 @@ class WormAnalysis_no3():
 
 			conc_X = np.tile(np.array([self.well_index_to_conc[x] for x in np.arange(self.num_concentrations*3)]).reshape(-1,1), (1, self.num_experiments))
 
-			if self.num_experiments >= 3 and default:
+
+			if self.num_experiments >= 3 and default and not constrain2Hill_bool:
 				param_dict = self.set_guess_params(avg2, hill2)
+			elif self.num_experiments >= 3 and default and constrain2Hill_bool:
+				param_dict = self.set_guess_params(avg2, hill2, num_exper='l3')
 			elif self.num_experiments >= 3 and not default:
 				param_dict = self.set_guess_params(avg2, hill2, default=False, not_default_2 = not_default_2)
 			elif self.num_experiments < 3 and default:
@@ -111,9 +114,9 @@ class WormAnalysis_no3():
 			lowest_nz_conc = np.sort(self.uniq_conc)[1]
 			highest_conc = np.amax(self.uniq_conc)
 
-			if self.num_experiments >= 3:
+			if self.num_experiments >= 3 and not constrain2Hill_bool:
 				logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 2-1-0 scoring using the default max number of function evaluations. Initial values are the following. \nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(P0_20_top, P0_20_bottom, P0_20_ic50, P0_20_hill))
-				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited2.flatten(), p0=P0_20, method='lm')
+				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited2.flatten(), p0=P0_20, method='lm', maxfev=int(1e6))
 				top_20, bottom_20, ic50_20, hill_20 = popt2[0], popt2[1], popt2[2], popt2[3]
 				logging.info('Returned lm fit for 2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}\nFIT HillSlope:\t{}'.format(top_20, bottom_20, ic50_20, hill_20))
 				no_fit_bool = self.evaluate_no_fit(top_20, bottom_20, ic50_20, highest_conc)
@@ -125,7 +128,7 @@ class WormAnalysis_no3():
 				logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
 			else:
 				logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 2-1-0 scoring useing the default max number of function evaluations and a constant hill slope of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}'.format(P0_20_hill, P0_20_top, P0_20_bottom, P0_20_ic50))
-				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited2.flatten(), p0=P0_20, method='lm')
+				popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited2.flatten(), p0=P0_20, method='lm', maxfev=int(1e6))
 				top_20, bottom_20, ic50_20 = popt2[0], popt2[1], popt2[2]
 				logging.info('Returned lm fit for 2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_20, bottom_20, ic50_20))
 				no_fit_bool = self.evaluate_no_fit(top_20, bottom_20, ic50_20, highest_conc)
