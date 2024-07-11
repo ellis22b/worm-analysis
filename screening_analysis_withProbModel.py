@@ -412,24 +412,24 @@ class WormAnalysis():
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
+                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
             reshaped_mid_by_well = self.motility_index_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 motility_index_across_exp[:,j*3:(j*3)+3 ,:] = reshaped_mid_by_well[:,:,:,j]
             motility_avg_across_exp = np.mean(motility_index_across_exp, axis=1)
-            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
+            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
 
         if plotLine1:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
+                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, exp), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
             reshaped_mort_by_well = self.mortality_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             mortality_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 mortality_across_exp[:,j*3:(j*3)+3, :] = reshaped_mort_by_well[:,:,:,j]
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
-            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.png'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
+            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
 
     def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days'):
         for j, conc in enumerate(self.uniq_conc):
@@ -505,15 +505,15 @@ class WormAnalysis():
             mortality = np.full((self.num_concentrations, self.num_days+1), 100, dtype=np.float64)
             mortality = self.findSurvivability(mortality, self.scores3_by_conc, representative-1, expNames[representative-1], mortality=True)
         if plotIT50 and plotLT50:
-            figname_base = '{}_IT50_LT50_' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+            figname_base = '{}_IT50_LT50_' + '{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1])
             self.plotSurvivalTime(inhibited, mortality, figname_base)
         else:
             if IT50:
-                figname_base = '{}_IT50' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+                figname_base = '{}_IT50' + '{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1])
                 self.plotSurvivalTime(inhibited, 0, figname_base, plot_mortality=False)
             else:
                 logging.warning('Why do you want to plot only the LT50? I suggest plotting them together. But here you go')
-                figname_base = '{}_LT50_' + '{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1])
+                figname_base = '{}_LT50_' + '{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1])
                 self.plotSurvivalTime(0, mortality, figname_base, plot_motility=False)
         logging.info('Completed Survival Analysis')
 
@@ -729,7 +729,7 @@ class WormAnalysis():
                 top_10, bottom_10, ic50_10, hill_10 = popt[0], popt[1], popt[2], popt[3]
                 logging.info('Returned lm fit for 1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}\nFIT HillSlope:\t{}'.format(top_10, bottom_10, ic50_10, hill_10))
                 if top_10 == bottom_10:
-                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
                     logging_value = r'\textbf{LC50}'
                     logging_value2 = 'LC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -738,9 +738,9 @@ class WormAnalysis():
                     logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
                 else:
                     if bottom_10 >= 50:
-                        self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                        self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
                     else:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, hill_10)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, hill_10)
                     logging_value = r'\textbf{LC50}'
                     logging_value2 = 'LC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -759,7 +759,7 @@ class WormAnalysis():
                 top_30, bottom_30, ic50_30, hill_30 = popt2[0], popt2[1], popt2[2], popt2[3]
                 logging.info('Returned lm fit for 3-2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}\nFIT HillSlope:\t{}'.format(top_30, bottom_30, ic50_30, hill_30))
                 if top_30 == bottom_30:
-                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
                     logging_value = r'\textbf{IC50}'
                     logging_value2 = 'IC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -768,9 +768,9 @@ class WormAnalysis():
                     logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
                 else:
                     if bottom_30 >= 50:
-                       self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                       self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
                     else:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, hill_30)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, hill_30)
                     logging_value = r'\textbf{IC50}'
                     logging_value2 = 'IC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -799,7 +799,7 @@ class WormAnalysis():
                 top_10, bottom_10, ic50_10 = popt[0], popt[1], popt[2]
                 logging.info('Returned lm fit for 1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_10, bottom_10, ic50_10))
                 if top_10 == bottom_10:
-                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
                     logging_value = r'\textbf{LC50}'
                     logging_value2 = 'LC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -808,9 +808,9 @@ class WormAnalysis():
                     logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
                 else:
                     if bottom_10 >= 50:
-                       self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
+                       self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1)
                     else:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, P0_10_hill)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg1, sem1, ic50_10, P0_10_hill)
                     logging_value = r'\textbf{LC50}'
                     logging_value2 = 'LC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -829,7 +829,7 @@ class WormAnalysis():
                 top_30, bottom_30, ic50_30 = popt2[0], popt2[1], popt2[2]
                 logging.info('Returned lm fit for 3-2-1-0 scoring.\nFIT Top:\t{}\nFIT Bottom:\t{}\nFIT IC50:\t{}'.format(top_30, bottom_30, ic50_30))
                 if top_30 == bottom_30:
-                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
                     logging_value = r'\textbf{IC50}'
                     logging_value2 = 'IC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)
@@ -838,9 +838,9 @@ class WormAnalysis():
                     logging.info("Added the %s value to the table which will be printed later. Column name is '%s' and the day/row is '%s'. NOTE: No real fit was possible because Top and Bottom are the same" %(logging_value2, logging_value2, self.C_day))
                 else:
                     if bottom_30 >= 50:
-                       self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
+                       self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3)
                     else:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.png'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, P0_30_hill)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day), self.uniq_conc, avg3, sem3, ic50_30, P0_30_hill)
                     logging_value = r'\textbf{IC50}'
                     logging_value2 = 'IC50'
                     logging_day = r'\textbf{%s}' % str(self.C_day)

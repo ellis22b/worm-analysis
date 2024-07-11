@@ -188,5 +188,5 @@ def plot_wormnums(scores_by_well, expNames, num_days):
         ax.set_xticklabels(np.arange(num_days)+1)
         ax.legend(bbox_to_anchor=[0.99, 0.5], loc='center left', ncol=2)
         #plt.tight_layout()
-        fig.savefig("well_num_worms_by_day_{}.png".format(expNames[exp_index]))
+        fig.savefig("well_num_worms_by_day_{}.pdf".format(expNames[exp_index]))
         plt.close(fig)

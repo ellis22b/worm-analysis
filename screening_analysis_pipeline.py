@@ -283,15 +283,15 @@ class WormAnalysis():
             if self.linePlotsMot:
                 if self.include_single_exp_plots:
                     for (i, exp) in enumerate(self.expNames):
-                        worm_analysis_scorelines.plotLineCurves(self.motility_index_scores_by_conc[:,:,i], 'isep_motility_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), self.expNames[i], "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                        worm_analysis_scorelines.plotLineCurves(self.motility_index_scores_by_conc[:,:,i], 'isep_motility_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, exp, figname_base), self.expNames[i], "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
                 to_plot_mot = worm_analysis_scorelines.get_avg_across_exp(self.motility_index_scores_by_well, self.num_concentrations, self.num_replicates, self.num_experiments, self.num_days)
-                worm_analysis_scorelines.plotLineCurves(to_plot_mot,'average_motility_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                worm_analysis_scorelines.plotLineCurves(to_plot_mot,'average_motility_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, self.nscore_insystem-1, 1, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
             if self.linePlotsMor:
                 if self.include_single_exp_plots:
                     for i, exp in enumerate(self.expNames):
-                        worm_analysis_scorelines.plotLineCurves(self.mortality_scores_by_conc[:,:,i], 'isep_mortality_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), exp, "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                        worm_analysis_scorelines.plotLineCurves(self.mortality_scores_by_conc[:,:,i], 'isep_mortality_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, exp, figname_base), exp, "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
                 to_plot_mor = worm_analysis_scorelines.get_avg_across_exp(self.mortality_scores_by_well, self.num_concentrations, self.num_replicates, self.num_experiments, self.num_days)
-                worm_analysis_scorelines.plotLineCurves(to_plot_mor,'average_mortality_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
+                worm_analysis_scorelines.plotLineCurves(to_plot_mor,'average_mortality_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25, np.arange(self.num_days + 1), self.uniq_conc, self.concUnits, self.mM)
 
     def drive_survivalTimePlots(self, figname_base='', no3=False):
         if self.time50:
@@ -313,18 +313,18 @@ class WormAnalysis():
                 self.df_tablec[logging_value] = LT50
                 logging.info("Added the LT50 values to the table which will be printed later. Column name is 'LT50'")
             if self.time50Mot and self.time50Mor:
-                figname_base_spec = '{}_IT50_LT50_' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
+                figname_base_spec = '{}_IT50_LT50_' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
                 if no3:
                     worm_analysis_it.plotSurvivalTime(inhibited, mortality, figname_base_spec, self.uniq_conc, self.concUnits, self.drug, self.stage, self.strain, np.arange(self.num_days + 1), no3=no3, inhibited_og = inhibited_og)
                 else:
                     worm_analysis_it.plotSurvivalTime(inhibited, mortality, figname_base_spec, self.uniq_conc, self.concUnits, self.drug, self.stage, self.strain, np.arange(self.num_days + 1))
             else:
                 if self.time50Mot:
-                    figname_base_spec = '{}_IT50_' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
+                    figname_base_spec = '{}_IT50_' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
                     worm_analysis_it.plotSurvivalTime(inhibited, np.nan, figname_base_spec, self.uniq_conc, self.concUnits, self.drug, self.stage, self.strain, np.arange(self.num_days + 1), plot_mortality=False)
                 if self.time50Mor:
                     logging.warning('Why do you want to plot only the LT50? I suggest plotting IT50 and LT50 together. But here you go')
-                    figname_base_spec = '{}_LT50_' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
+                    figname_base_spec = '{}_LT50_' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.expNames[self.representative-1], figname_base)
                     worm_analysis_it.plotSurvivalTime(np.nan, mortality, figname_base_spec, self.uniq_conc, self.concUnits, self.drug, self.stage, self.strain, np.arange(self.num_days +1), plot_motility=False)
         logging.info('Completed Survival Analysis')
 
@@ -390,7 +390,7 @@ class WormAnalysis():
                     logging.info("Returned fit for no3 Motility (2-1-0) scoring (top, bottom, ic50, hill (if number of experiments >3)): {}".format(popt))
                     nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                     #plot curve fit
-                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.no3spline_k1, self.no3spline_k2, popt, constrainedHill = self.no3Hill, use100_0=self.plotno3HundredZero, useobserved=self.plotno3TopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.combine32returnliteral50)
+                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.no3spline_k1, self.no3spline_k2, popt, constrainedHill = self.no3Hill, use100_0=self.plotno3HundredZero, useobserved=self.plotno3TopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.combine32returnliteral50)
                     #record value in table
                     if nofit_bool or self.combine32returnliteral50:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mot_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True, no3=no3)
@@ -408,7 +408,7 @@ class WormAnalysis():
                     logging.info("Returned fit for Motility (3-2-1-0) scoring (top, bottom, ic50, hill (if number of experiments >3)): {}".format(popt))
                     nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                     #plot curve fit
-                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.motspline_k1, self.motspline_k2, popt, constrainedHill = self.motHill, use100_0=self.plotMotHundredZero, useobserved=self.plotMotTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.motreturnliteral50)
+                    mot_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMot, semMot, self.uniq_conc, self.x0_value, self.concUnits, self.motspline_k1, self.motspline_k2, popt, constrainedHill = self.motHill, use100_0=self.plotMotHundredZero, useobserved=self.plotMotTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.motreturnliteral50)
                     #record value in table
                     if nofit_bool or self.motreturnliteral50:
                         self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mot_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], motility=True)
@@ -425,7 +425,7 @@ class WormAnalysis():
                 logging.info("Returned fit for Mortality (1-0) scoring (top, bottom, lc50, hill (if number of experiments >3)): {}".format(popt))
                 nofit_bool = worm_analysis_ic.evaluate_no_fit(popt[0], popt[1], popt[2], np.sort(self.uniq_conc)[-1])
                 #plot curve fit
-                mor_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMor, semMor, self.uniq_conc, self.x0_value, self.concUnits, self.morspline_k1, self.morspline_k2, popt, constrainedHill = self.morHill, use100_0=self.plotMorHundredZero, useobserved=self.plotMorTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.morreturnliteral50)
+                mor_splineic50 = worm_analysis_ic.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), avgMor, semMor, self.uniq_conc, self.x0_value, self.concUnits, self.morspline_k1, self.morspline_k2, popt, constrainedHill = self.morHill, use100_0=self.plotMorHundredZero, useobserved=self.plotMorTopBottom_bool, fit_possible = not nofit_bool, returnliteral50 = self.morreturnliteral50)
                 #record value in table
                 if nofit_bool or self.morreturnliteral50:
                     self.df_tabled = worm_analysis_ic.set_to_log_value(self.df_tabled, self.C_day, popt[1], mor_splineic50, np.sort(self.uniq_conc)[-1], np.sort(self.uniq_conc)[1], mortality=True)

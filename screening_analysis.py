@@ -264,7 +264,7 @@ class WormAnalysis():
                 ax.set_xticklabels(np.arange(self.num_days)+1)
                 ax.legend(bbox_to_anchor=[0.99, 0.5], loc='center left', ncol=2)
                 plt.tight_layout()
-                fig.savefig("well_num_worms_by_day_{}.png".format(expNames[i]))
+                fig.savefig("well_num_worms_by_day_{}.pdf".format(expNames[i]))
                 plt.close(fig)
 
     def reset_self_arrays(self, new_scores3_by_well, new_scores3_by_conc):
@@ -414,24 +414,24 @@ class WormAnalysis():
         if plotLine3:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
+                    self.plotLineCurves(self.motility_index_scores_by_conc[:, :, i], 'isep_motility_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
             reshaped_mid_by_well = self.motility_index_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             motility_index_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 motility_index_across_exp[:,j*3:(j*3)+3 ,:] = reshaped_mid_by_well[:,:,:,j]
             motility_avg_across_exp = np.mean(motility_index_across_exp, axis=1)
-            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
+            self.plotLineCurves(motility_avg_across_exp, 'average_motility_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$", "Motility Index Score", 0, 3, 1)
 
         if plotLine1:
             if isep:
                 for i, exp in enumerate(expNames):
-                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
+                    self.plotLineCurves(self.mortality_scores_by_conc[:, :, i], 'isep_mortality_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, exp, figname_base), r"\textbf{%s %s on %s %s}" %(exp, self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
             reshaped_mort_by_well = self.mortality_scores_by_well.reshape((self.num_concentrations, 3, self.num_days+1, self.num_experiments))
             mortality_across_exp = np.zeros((self.num_concentrations, 3*self.num_experiments, self.num_days+1), dtype=np.float64)
             for j in range(self.num_experiments):
                 mortality_across_exp[:,j*3:(j*3)+3, :] = reshaped_mort_by_well[:,:,:,j]
             mortality_avg_across_exp = np.mean(mortality_across_exp, axis=1)
-            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
+            self.plotLineCurves(mortality_avg_across_exp, 'average_mortality_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, figname_base), r"\textbf{%s on %s %s}" %(self.drug, self.stage, self.strain) + r" $\textbf{$\textit{C. elegans}$}$" , "\% Alive", 0, 100, 25)
 
     def plotSurvivalTime(self, inhibited, mortality, figname_base, plot_mortality=True, plot_motility=True, ysep=50, ymin=0, ymax=100, ylabel="\% Alive or \% Uninhibited", xlabel='Days'):
         for j, conc in enumerate(self.uniq_conc):
@@ -505,15 +505,15 @@ class WormAnalysis():
             mortality = np.full((self.num_concentrations, self.num_days+1), 100, dtype=np.float64)
             mortality = self.findSurvivability(mortality, self.scores3_by_conc, representative-1, expNames[representative-1], mortality=True)
         if plotIT50 and plotLT50:
-            figname_base_spec = '{}_IT50_LT50_' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
+            figname_base_spec = '{}_IT50_LT50_' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
             self.plotSurvivalTime(inhibited, mortality, figname_base_spec)
         else:
             if IT50:
-                figname_base_spec = '{}_IT50' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
+                figname_base_spec = '{}_IT50' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
                 self.plotSurvivalTime(inhibited, 0, figname_base_spec, plot_mortality=False)
             else:
                 logging.warning('Why do you want to plot only the LT50? I suggest plotting them together. But here you go')
-                figname_base_spec = '{}_LT50_' + '{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
+                figname_base_spec = '{}_LT50_' + '{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, expNames[representative-1], figname_base)
                 self.plotSurvivalTime(0, mortality, figname_base_spec, plot_motility=False)
         logging.info('Completed Survival Analysis')
 
@@ -864,12 +864,12 @@ class WormAnalysis():
                 no_fit_bool = self.evaluate_no_fit(top_10, bottom_10, ic50_10, highest_conc)
                 self.set_to_log_value(bottom_10, ic50_10, highest_conc, lowest_nz_conc)
                 if no_fit_bool:
-                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$'+ ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$'+ ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
                 else:
                     if fitTopPlot_bool:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=hill_10, curve_fit_top=top_10, curve_fit_bottom = bottom_10)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=hill_10, curve_fit_top=top_10, curve_fit_bottom = bottom_10)
                     else:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, cruve_fit_hillslope=hill_10)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, cruve_fit_hillslope=hill_10)
             if plotIC50:
                 logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}\nINITIAL HillSlope:\t{}'.format(P0_30_top, P0_30_bottom, P0_30_ic50, P0_30_hill))
                 popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm', maxfev=int(1e6))
@@ -878,12 +878,12 @@ class WormAnalysis():
                 no_fit_bool = self.evaluate_no_fit(top_30, bottom_30, ic50_30, highest_conc)
                 self.set_to_log_value(bottom_30, ic50_30, highest_conc, lowest_nz_conc, LC50=False)
                 if no_fit_bool:
-                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
                 else:
                     if fitTopPlot_bool:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
                     else:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=hill_30)
             logging.info('Completed Non-linear Regression for Inhibition Response Analysis')
 
         else:
@@ -895,12 +895,12 @@ class WormAnalysis():
                 no_fit_bool = self.evaluate_no_fit(top_10, bottom_10, ic50_10, highest_conc)
                 self.set_to_log_value(bottom_10, ic50_10, highest_conc, lowest_nz_conc)
                 if no_fit_bool:
-                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
+                    self.plotIC_noFit(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, spline_k1, spline_k2)
                 else:
                     if fitTopPlot_bool:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill, curve_fit_top=top_10, curve_fit_bottom=bottom_10)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill, curve_fit_top=top_10, curve_fit_bottom=bottom_10)
                     else:
-                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill)
+                        self.plotIC(r'$\mathrm{LC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'LC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg1, sem1, ic50_10, curve_fit_hillslope=P0_10_hill)
             if plotIC50:
                 logging.info('Running Levenberg-Marquardt Algorithm Scipy Curve Fitting for 3-2-1-0 scoring using the default max number of function evaluations and a constant hill slope of {}. Initial values are the following.\nINITIAL Top:\t{}\nINITIAL Bottom:\t{}\nINITIAL IC50:\t{}'.format(P0_30_hill, P0_30_top, P0_30_bottom, P0_30_ic50))
                 popt2, popc2 = curve_fit(self.inhibitorResponse_equation, conc_X.flatten(), uninhibited3.flatten(), p0=P0_30, method='lm', maxfev=int(1e6))
@@ -909,12 +909,12 @@ class WormAnalysis():
                 no_fit_bool = self.evaluate_no_fit(top_30, bottom_30, ic50_30, highest_conc)
                 self.set_to_log_value(bottom_30, ic50_30, highest_conc, lowest_nz_conc, LC50=False)
                 if no_fit_bool:
-                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
+                    self.plotIC_noFit(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, spline_k1, spline_k2)
                 else:
                     if fitTopPlot_bool:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill, curve_fit_top=top_30, curve_fit_bottom=bottom_30)
                     else:
-                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.png'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill)
+                        self.plotIC(r'$\mathrm{IC_{50}}$' + ' {} on {} {} Day {}'.format(self.drug, self.stage, self.strain, self.C_day), 'IC50_{}_{}_{}_{}{}.pdf'.format(self.drug, self.stage, self.strain, self.C_day, figname_base), self.uniq_conc, avg3, sem3, ic50_30, curve_fit_hillslope=P0_30_hill)
             logging.info('Completed Non-linear Regression for Inhibition Response Analysis but with constrained hill slope therefore the fit is likely less than ideal')
 
     def reportTable(self, rep_exp, reportNum, plotIT50, plotLT50, plotIC50, plotLC50, figname_base=''):
